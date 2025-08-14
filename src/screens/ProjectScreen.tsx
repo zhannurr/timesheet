@@ -187,10 +187,10 @@ export default function ProjectScreen({ navigation }: { navigation: any }) {
           <Text style={styles.summaryLabel}>Projects</Text>
           <Text style={styles.summaryValue}>{totalProjects}</Text>
         </View>
-        <View style={styles.summaryItem}>
+        {/* <View style={styles.summaryItem}>
           <Text style={styles.summaryLabel}>Total Hours</Text>
           <Text style={styles.summaryValue}>{totalHours}</Text>
-        </View>
+        </View> */}
         {isAdmin && (
           <TouchableOpacity 
             style={styles.addButton}
@@ -247,10 +247,10 @@ export default function ProjectScreen({ navigation }: { navigation: any }) {
               </View>
             </View>
         
-            <View style={styles.projectFooter}>
+            {/* <View style={styles.projectFooter}>
               <Text style={styles.hoursText}>{project.totalHours} hours</Text>
-              <Text style={styles.tapText}>Tap to view timesheet →</Text>
-            </View>
+
+            </View> */}
           </TouchableOpacity>
         ))}
       </ScrollView>

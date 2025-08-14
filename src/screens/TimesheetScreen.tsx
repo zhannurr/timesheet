@@ -182,18 +182,20 @@ export default function TimesheetScreen({ navigation, route }: { navigation: any
 
       {showAddForm && (
         <View style={styles.addForm}>
-          <TextInput
-            style={styles.input}
-            placeholder="Task"
-            value={newEntry.task}
-            onChangeText={(text) => setNewEntry({...newEntry, task: text})}
-          />
+          
           <TextInput
             style={styles.input}
             placeholder="Hours"
             value={newEntry.hours}
             onChangeText={(text) => setNewEntry({...newEntry, hours: text})}
             keyboardType="numeric"
+          />
+
+          <TextInput
+            style={styles.input}
+            placeholder="Task"
+            value={newEntry.task}
+            onChangeText={(text) => setNewEntry({...newEntry, task: text})}
           />
         
           <TouchableOpacity style={styles.saveButton} onPress={addTimeEntry}>
