@@ -233,7 +233,7 @@ export default function ProjectScreen({ navigation }: { navigation: any }) {
                     style={styles.manageUsersButton}
                     onPress={() => openUserManagement(project)}
                   >
-                    <Text style={styles.manageUsersButtonText}>👥</Text>
+                    <Text style={styles.manageUsersButtonText}>Users Manage</Text>
                   </TouchableOpacity>
                 )}
                 {isAdmin && (
@@ -241,7 +241,7 @@ export default function ProjectScreen({ navigation }: { navigation: any }) {
                     style={styles.deleteButton}
                     onPress={() => showDeleteConfirmation(project.id)}
                   >
-                    <Text style={styles.deleteButtonText}>🗑️</Text>
+                    <Text style={styles.deleteButtonText}>Delete</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -452,6 +452,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   manageUsersButtonText: {
+    borderRadius: 10,
     color: '#fff',
     fontSize: 16,
   },
@@ -459,7 +460,11 @@ const styles = StyleSheet.create({
     padding: 5,
   },
   deleteButtonText: {
+    backgroundColor: '#FF3B30',
+    borderRadius: 10,
     fontSize: 16,
+    color: "white",
+    padding: 8,
   },
  
   projectFooter: {
