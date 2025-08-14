@@ -43,6 +43,7 @@ export default function TimesheetScreen({ navigation, route }: { navigation: any
       setNewEntry(prev => ({ ...prev, projectId, projectName }));
       
       const tasksRef = collection(db, 'tasks');
+      // Only show tasks created by the current user
       const q = query(tasksRef, where('userId', '==', user.uid), where('projectId', '==', projectId));
       
       const unsubscribe = onSnapshot(q, (querySnapshot) => {

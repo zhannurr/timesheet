@@ -28,21 +28,19 @@ export default function ProjectScreen({ navigation }: { navigation: any }) {
   const { user } = useAuth();
 
   useEffect(() => {
-    if (user) {
-      const projectsRef = collection(db, 'projects');
-      const q = query(projectsRef, where('userId', '==', user.uid));
-      
-      const unsubscribe = onSnapshot(q, (querySnapshot) => {
-        const projectsData: Project[] = [];
-        querySnapshot.forEach((doc) => {
-          projectsData.push({ id: doc.id, ...doc.data() } as Project);
-        });
-        setProjects(projectsData);
+    // Projects are public - no user filter needed
+    const projectsRef = collection(db, 'projects');
+    
+    const unsubscribe = onSnapshot(projectsRef, (querySnapshot) => {
+      const projectsData: Project[] = [];
+      querySnapshot.forEach((doc) => {
+        projectsData.push({ id: doc.id, ...doc.data() } as Project);
       });
+      setProjects(projectsData);
+    });
 
-      return () => unsubscribe();
-    }
-  }, [user]);
+    return () => unsubscribe();
+  }, []);
 
   const addProject = async () => {
     if (!newProject.name) {
@@ -53,8 +51,7 @@ export default function ProjectScreen({ navigation }: { navigation: any }) {
     try {
       const projectData = {
         ...newProject,
-        userId: user?.uid,
-        totalHours: 0,
+        createdBy: user?.uid, // Track who created it
         createdAt: new Date()
       };
 
