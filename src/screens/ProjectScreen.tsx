@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,11 +7,14 @@ import {
   TouchableOpacity,
   TextInput,
   Modal,
+  RefreshControl,
 } from 'react-native';
 import { collection, addDoc, deleteDoc, doc, getDocs, query, where, onSnapshot, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { useAuth } from '../contexts/AuthContext';
 import DeleteConfirmation from '../components/DeleteConfirmation';
+import LoadingSpinner from '../components/LoadingSpinner';
+import SkeletonLoader from '../components/SkeletonLoader';
 
 interface Project {
   id: string;
@@ -30,6 +33,8 @@ interface User {
 export default function ProjectScreen({ navigation }: { navigation: any }) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showUserManagement, setShowUserManagement] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -47,47 +52,106 @@ export default function ProjectScreen({ navigation }: { navigation: any }) {
   const { user, userData } = useAuth();
   const isAdmin = userData?.role === 'admin';
 
+  // Memoize queries to prevent unnecessary re-renders
+  const projectsQuery = useMemo(() => {
+    if (!user) return null;
+    
+    const projectsRef = collection(db, 'projects');
+    if (isAdmin) {
+      return projectsRef;
+    } else {
+      return query(projectsRef, where('assignedUsers', 'array-contains', user.uid));
+    }
+  }, [user, isAdmin]);
+
+  const usersQuery = useMemo(() => {
+    if (!isAdmin) return null;
+    return collection(db, 'users');
+  }, [isAdmin]);
+
+  // Optimized data fetching with error handling
+  const fetchProjects = useCallback(async () => {
+    if (!projectsQuery) return;
+    
+    try {
+      setLoading(true);
+      const querySnapshot = await getDocs(projectsQuery);
+      const projectsData: Project[] = [];
+      querySnapshot.forEach((doc) => {
+        projectsData.push({ id: doc.id, ...doc.data() } as Project);
+      });
+      setProjects(projectsData);
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [projectsQuery]);
+
+  const fetchUsers = useCallback(async () => {
+    if (!usersQuery) return;
+    
+    try {
+      const querySnapshot = await getDocs(usersQuery);
+      const usersData: User[] = [];
+      querySnapshot.forEach((doc) => {
+        usersData.push({ uid: doc.id, ...doc.data() } as User);
+      });
+      setUsers(usersData);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  }, [usersQuery]);
+
+  // Set up real-time listeners with optimization
   useEffect(() => {
-    if (user) {
-      const projectsRef = collection(db, 'projects');
-      let q;
-      
-      if (isAdmin) {
-        // Admin can see all projects
-        q = projectsRef;
-      } else {
-        // Regular users only see projects they're assigned to
-        q = query(projectsRef, where('assignedUsers', 'array-contains', user.uid));
-      }
-      
-      const unsubscribe = onSnapshot(q, (querySnapshot) => {
+    if (!projectsQuery) return;
+
+    const unsubscribe = onSnapshot(
+      projectsQuery,
+      (querySnapshot) => {
         const projectsData: Project[] = [];
         querySnapshot.forEach((doc) => {
           projectsData.push({ id: doc.id, ...doc.data() } as Project);
         });
         setProjects(projectsData);
-      });
+        setLoading(false);
+      },
+      (error) => {
+        console.error('Error in projects listener:', error);
+        setLoading(false);
+      }
+    );
 
-      return () => unsubscribe();
-    }
-  }, [user, isAdmin]);
+    return () => unsubscribe();
+  }, [projectsQuery]);
 
   useEffect(() => {
-    // Fetch all users for admin management
-    if (isAdmin) {
-      const usersRef = collection(db, 'users');
-      
-      const unsubscribe = onSnapshot(usersRef, (querySnapshot) => {
+    if (!usersQuery) return;
+
+    const unsubscribe = onSnapshot(
+      usersQuery,
+      (querySnapshot) => {
         const usersData: User[] = [];
         querySnapshot.forEach((doc) => {
           usersData.push({ uid: doc.id, ...doc.data() } as User);
         });
         setUsers(usersData);
-      });
+      },
+      (error) => {
+        console.error('Error in users listener:', error);
+      }
+    );
 
-      return () => unsubscribe();
-    }
-  }, [isAdmin]);
+    return () => unsubscribe();
+  }, [usersQuery]);
+
+  // Pull-to-refresh functionality
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([fetchProjects(), fetchUsers()]);
+    setRefreshing(false);
+  }, [fetchProjects, fetchUsers]);
 
   const addProject = async () => {
     if (!newProject.name) {
@@ -134,10 +198,8 @@ export default function ProjectScreen({ navigation }: { navigation: any }) {
   };
 
   const openUserManagement = (project: Project) => {
-    navigation.navigate('UserManagement', { 
-      projectId: project.id, 
-      projectName: project.name 
-    });
+    setSelectedProject(project);
+    setShowUserManagement(true);
   };
 
   const showDeleteConfirmation = (projectId: string) => {
@@ -169,8 +231,17 @@ export default function ProjectScreen({ navigation }: { navigation: any }) {
     navigation.navigate('Timesheet', { projectId: project.id, projectName: project.name });
   };
 
-  const totalProjects = projects.length;
-  const totalHours = projects.reduce((sum, project) => sum + project.totalHours, 0);
+  // Memoize calculations
+  const totalProjects = useMemo(() => projects.length, [projects]);
+  const totalHours = useMemo(() => 
+    projects.reduce((sum, project) => sum + project.totalHours, 0), 
+    [projects]
+  );
+
+  // Show loading spinner while initial data loads
+  if (loading && projects.length === 0) {
+    return <LoadingSpinner text="Loading projects..." />;
+  }
 
   return (
     <View style={styles.container}>
@@ -187,10 +258,6 @@ export default function ProjectScreen({ navigation }: { navigation: any }) {
           <Text style={styles.summaryLabel}>Projects</Text>
           <Text style={styles.summaryValue}>{totalProjects}</Text>
         </View>
-        {/* <View style={styles.summaryItem}>
-          <Text style={styles.summaryLabel}>Total Hours</Text>
-          <Text style={styles.summaryValue}>{totalHours}</Text>
-        </View> */}
         {isAdmin && (
           <TouchableOpacity 
             style={styles.addButton}
@@ -218,41 +285,61 @@ export default function ProjectScreen({ navigation }: { navigation: any }) {
         </View>
       )}
 
-      <ScrollView style={styles.projectList}>
-        {projects.map((project) => (
-          <TouchableOpacity
-            key={project.id}
-            style={styles.projectCard}
-            onPress={() => openProjectTimesheet(project)}
-          >
-            <View style={styles.projectHeader}>
-              <Text style={styles.projectName}>{project.name}</Text>
-              <View style={styles.projectActions}>
-                {isAdmin && (
-                  <TouchableOpacity 
-                    style={styles.manageUsersButton}
-                    onPress={() => openUserManagement(project)}
-                  >
-                    <Text style={styles.manageUsersButtonText}>Users Manage</Text>
-                  </TouchableOpacity>
-                )}
-                {isAdmin && (
-                  <TouchableOpacity 
-                    style={styles.deleteButton}
-                    onPress={() => showDeleteConfirmation(project.id)}
-                  >
-                    <Text style={styles.deleteButtonText}>Delete</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
+      <ScrollView 
+        style={styles.projectList}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        showsVerticalScrollIndicator={false}
+      >
+        {loading && projects.length === 0 ? (
+          // Show skeleton loaders while loading
+          Array.from({ length: 3 }).map((_, index) => (
+            <View key={index} style={styles.projectCard}>
+              <SkeletonLoader width="70%" height={20} style={{ marginBottom: 10 }} />
+              <SkeletonLoader width="40%" height={16} />
             </View>
-        
-            {/* <View style={styles.projectFooter}>
-              <Text style={styles.hoursText}>{project.totalHours} hours</Text>
+          ))
+        ) : (
+          projects.map((project) => (
+            <TouchableOpacity
+              key={project.id}
+              style={styles.projectCard}
+              onPress={() => openProjectTimesheet(project)}
+            >
+              <View style={styles.projectHeader}>
+                <Text style={styles.projectName}>{project.name}</Text>
+                <View style={styles.projectActions}>
+                  {isAdmin && (
+                    <TouchableOpacity 
+                      style={styles.manageUsersButton}
+                      onPress={() => openUserManagement(project)}
+                    >
+                      <Text style={styles.manageUsersButtonText}>Users Manage</Text>
+                    </TouchableOpacity>
+                  )}
+                  {isAdmin && (
+                    <TouchableOpacity 
+                      style={styles.deleteButton}
+                      onPress={() => showDeleteConfirmation(project.id)}
+                    >
+                      <Text style={styles.deleteButtonText}>Delete</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+            </TouchableOpacity>
+          ))
+        )}
 
-            </View> */}
-          </TouchableOpacity>
-        ))}
+        {!loading && projects.length === 0 && (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyStateText}>No projects yet</Text>
+            <Text style={styles.emptyStateSubtext}>
+              {isAdmin ? 'Create your first project to get started' : 'You will see projects here once assigned'}
+            </Text>
+          </View>
+        )}
       </ScrollView>
 
       {/* User Management Modal */}
@@ -561,5 +648,21 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 50,
+  },
+  emptyStateText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#555',
+    marginBottom: 10,
+  },
+  emptyStateSubtext: {
+    fontSize: 16,
+    color: '#888',
+    textAlign: 'center',
+    paddingHorizontal: 20,
   },
 });

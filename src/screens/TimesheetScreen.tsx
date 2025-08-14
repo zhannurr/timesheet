@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -6,11 +6,14 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
+  RefreshControl,
 } from 'react-native';
 import { collection, addDoc, deleteDoc, doc, getDocs, query, where, onSnapshot, updateDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { useAuth } from '../contexts/AuthContext';
 import DeleteConfirmation from '../components/DeleteConfirmation';
+import LoadingSpinner from '../components/LoadingSpinner';
+import SkeletonLoader from '../components/SkeletonLoader';
 
 interface TimeEntry {
   id: string;
@@ -19,21 +22,13 @@ interface TimeEntry {
   projectName: string;
   task: string;
   hours: string;
-
   userId: string;
 }
 
 export default function TimesheetScreen({ navigation, route }: { navigation: any; route: any }) {
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [newEntry, setNewEntry] = useState<Omit<TimeEntry, 'id' | 'userId'>>({
-    date: new Date().toISOString().split('T')[0],
-    projectId: '',
-    projectName: '',
-    task: '',
-    hours: '',
-  });
-  
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState<{
     visible: boolean;
     entryId: string | null;
@@ -47,73 +42,67 @@ export default function TimesheetScreen({ navigation, route }: { navigation: any
   const { user, userData } = useAuth();
   const { projectId, projectName } = route.params || {};
 
+  // Memoize the query to prevent unnecessary re-renders
+  const tasksQuery = useMemo(() => {
+    if (!user || !projectId) return null;
+    
+    const tasksRef = collection(db, 'tasks');
+    if (userData?.role === 'admin') {
+      return query(tasksRef, where('projectId', '==', projectId));
+    } else {
+      return query(tasksRef, where('userId', '==', user.uid), where('projectId', '==', projectId));
+    }
+  }, [user, userData?.role, projectId]);
+
+  // Optimized data fetching with error handling
+  const fetchTimeEntries = useCallback(async () => {
+    if (!tasksQuery) return;
+    
+    try {
+      setLoading(true);
+      const querySnapshot = await getDocs(tasksQuery);
+      const tasksData: TimeEntry[] = [];
+      querySnapshot.forEach((doc) => {
+        tasksData.push({ id: doc.id, ...doc.data() } as TimeEntry);
+      });
+      setTimeEntries(tasksData);
+    } catch (error) {
+      console.error('Error fetching time entries:', error);
+      // You could show a toast or alert here
+    } finally {
+      setLoading(false);
+    }
+  }, [tasksQuery]);
+
+  // Set up real-time listener with optimization
   useEffect(() => {
-    if (user && projectId) {
-      setNewEntry(prev => ({ ...prev, projectId, projectName }));
-      
-      const tasksRef = collection(db, 'tasks');
-      let q;
-      
-      // Check if user is admin
-      if (userData?.role === 'admin') {
-        // Admin can see all tasks for this project
-        q = query(tasksRef, where('projectId', '==', projectId));
-      } else {
-        // Regular users only see their own tasks
-        q = query(tasksRef, where('userId', '==', user.uid), where('projectId', '==', projectId));
-      }
-      
-      const unsubscribe = onSnapshot(q, (querySnapshot) => {
+    if (!tasksQuery) return;
+
+    const unsubscribe = onSnapshot(
+      tasksQuery,
+      (querySnapshot) => {
         const tasksData: TimeEntry[] = [];
         querySnapshot.forEach((doc) => {
           tasksData.push({ id: doc.id, ...doc.data() } as TimeEntry);
         });
         setTimeEntries(tasksData);
-      });
-
-      return () => unsubscribe();
-    }
-  }, [user, userData, projectId]);
-
-  const addTimeEntry = async () => {
-    if (!newEntry.date || !newEntry.task || !newEntry.hours) {
-      alert('Please fill in all required fields');
-      return;
-    }
-
-    try {
-      const taskData = {
-        ...newEntry,
-        userId: user?.uid,
-        createdAt: new Date()
-      };
-
-      await addDoc(collection(db, 'tasks'), taskData);
-      
-      // Update project total hours
-      if (projectId) {
-        const projectRef = doc(db, 'projects', projectId);
-        const currentProject = await getDocs(query(collection(db, 'projects'), where('__name__', '==', projectId)));
-        if (!currentProject.empty) {
-          const projectData = currentProject.docs[0].data();
-          const newTotalHours = (projectData.totalHours || 0) + parseFloat(newEntry.hours);
-          await updateDoc(projectRef, { totalHours: newTotalHours });
-        }
+        setLoading(false);
+      },
+      (error) => {
+        console.error('Error in real-time listener:', error);
+        setLoading(false);
       }
+    );
 
-      setNewEntry({
-        date: new Date().toISOString().split('T')[0],
-        projectId: projectId || '',
-        projectName: projectName || '',
-        task: '',
-        hours: '',
+    return () => unsubscribe();
+  }, [tasksQuery]);
 
-      });
-      setShowAddForm(false);
-    } catch (error) {
-      alert('Failed to add time entry');
-    }
-  };
+  // Pull-to-refresh functionality
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchTimeEntries();
+    setRefreshing(false);
+  }, [fetchTimeEntries]);
 
   const showDeleteConfirmation = (entryId: string, hours: string) => {
     setDeleteConfirmation({
@@ -154,7 +143,20 @@ export default function TimesheetScreen({ navigation, route }: { navigation: any
     }
   };
 
-  const totalHours = timeEntries.reduce((sum, entry) => sum + parseFloat(entry.hours || '0'), 0);
+  // Memoize total hours calculation
+  const totalHours = useMemo(() => 
+    timeEntries.reduce((sum, entry) => sum + parseFloat(entry.hours || '0'), 0), 
+    [timeEntries]
+  );
+
+  const navigateToNewEntry = () => {
+    navigation.navigate('NewEntry', { projectId, projectName });
+  };
+
+  // Show loading spinner while initial data loads
+  if (loading && timeEntries.length === 0) {
+    return <LoadingSpinner text="Loading timesheet..." />;
+  }
 
   return (
     <View style={styles.container}>
@@ -172,39 +174,19 @@ export default function TimesheetScreen({ navigation, route }: { navigation: any
         <Text style={styles.summaryText}>Total Hours: {totalHours}</Text>
         <TouchableOpacity 
           style={styles.addButton}
-          onPress={() => setShowAddForm(!showAddForm)}
+          onPress={navigateToNewEntry}
         >
-          <Text style={styles.addButtonText}>
-            {showAddForm ? 'Cancel' : '+ Add Entry'}
-          </Text>
+          <Text style={styles.addButtonText}>+ Add Entry</Text>
         </TouchableOpacity>
       </View>
 
-      {showAddForm && (
-        <View style={styles.addForm}>
-          
-          <TextInput
-            style={styles.input}
-            placeholder="Hours"
-            value={newEntry.hours}
-            onChangeText={(text) => setNewEntry({...newEntry, hours: text})}
-            keyboardType="numeric"
-          />
-
-          <TextInput
-            style={styles.input}
-            placeholder="Task"
-            value={newEntry.task}
-            onChangeText={(text) => setNewEntry({...newEntry, task: text})}
-          />
-        
-          <TouchableOpacity style={styles.saveButton} onPress={addTimeEntry}>
-            <Text style={styles.saveButtonText}>Save Entry</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      <ScrollView style={styles.tableContainer}>
+      <ScrollView 
+        style={styles.tableContainer}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.tableHeader}>
           <Text style={[styles.headerCell, styles.dateCell]}>Date</Text>
           <Text style={[styles.headerCell, styles.taskCell]}>Task</Text>
@@ -212,21 +194,40 @@ export default function TimesheetScreen({ navigation, route }: { navigation: any
           <Text style={[styles.headerCell, styles.actionCell]}>Actions</Text>
         </View>
 
-        {timeEntries.map((entry) => (
-          <View key={entry.id} style={styles.tableRow}>
-            <Text style={[styles.cell, styles.dateCell]}>{entry.date}</Text>
-            <Text style={[styles.cell, styles.taskCell]}>{entry.task}</Text>
-            <Text style={[styles.cell, styles.hoursCell]}>{entry.hours}</Text>
-            <View style={styles.actionCell}>
-              <TouchableOpacity 
-                style={styles.deleteButton}
-                onPress={() => showDeleteConfirmation(entry.id, entry.hours)}
-              >
-                <Text style={styles.deleteButtonText}>Delete🗑️</Text>
-              </TouchableOpacity>
+        {loading && timeEntries.length === 0 ? (
+          // Show skeleton loaders while loading
+          Array.from({ length: 5 }).map((_, index) => (
+            <View key={index} style={styles.tableRow}>
+              <SkeletonLoader width="80%" height={16} />
+              <SkeletonLoader width="90%" height={16} />
+              <SkeletonLoader width="60%" height={16} />
+              <SkeletonLoader width="70%" height={16} />
             </View>
+          ))
+        ) : (
+          timeEntries.map((entry) => (
+            <View key={entry.id} style={styles.tableRow}>
+              <Text style={[styles.cell, styles.dateCell]}>{entry.date}</Text>
+              <Text style={[styles.cell, styles.taskCell]}>{entry.task}</Text>
+              <Text style={[styles.cell, styles.hoursCell]}>{entry.hours}</Text>
+              <View style={styles.actionCell}>
+                <TouchableOpacity 
+                  style={styles.deleteButton}
+                  onPress={() => showDeleteConfirmation(entry.id, entry.hours)}
+                >
+                  <Text style={styles.deleteButtonText}>Delete🗑️</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))
+        )}
+
+        {!loading && timeEntries.length === 0 && (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyStateText}>No time entries yet</Text>
+            <Text style={styles.emptyStateSubtext}>Add your first entry to get started</Text>
           </View>
-        ))}
+        )}
       </ScrollView>
 
       <DeleteConfirmation
@@ -376,5 +377,28 @@ const styles = StyleSheet.create({
   deleteButtonText: {
     
     fontSize: 16,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 50,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    marginHorizontal: 20,
+    marginTop: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  emptyStateText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#555',
+    marginBottom: 10,
+  },
+  emptyStateSubtext: {
+    fontSize: 14,
+    color: '#888',
   },
 });

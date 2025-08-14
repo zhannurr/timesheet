@@ -6,6 +6,7 @@ import ProjectScreen from '../screens/ProjectScreen';
 import TimesheetScreen from '../screens/TimesheetScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import UserManagementScreen from '../screens/UserManagementScreen';
+import NewEntryScreen from '../screens/NewEntryScreen';
 
 const Drawer = createDrawerNavigator<import('../types/navigation').MainDrawerParamList>();
 
@@ -89,6 +90,16 @@ export default function MainDrawer() {
           drawerLabel: 'Timesheet',
           drawerIcon: ({ color, size }) => (
             <Text style={[styles.drawerIcon, { color, fontSize: size }]}>📊</Text>
+          ),
+        }}
+      />
+      <Drawer.Screen 
+        name="NewEntry" 
+        component={NewEntryScreen}
+        options={{
+          drawerLabel: 'New Entry',
+          drawerIcon: ({ color, size }) => (
+            <Text style={[styles.drawerIcon, { color, fontSize: size }]}>➕</Text>
           ),
         }}
       />

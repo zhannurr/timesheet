@@ -11,6 +11,7 @@ export type AuthStackParamList = {
 export type MainDrawerParamList = {
   Projects: undefined;
   Timesheet: { projectId: string; projectName: string };
+  NewEntry: { projectId: string; projectName: string };
   UserManagement: { projectId: string; projectName: string };
   Profile: undefined;
 };
