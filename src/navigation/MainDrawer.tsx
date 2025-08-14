@@ -4,6 +4,7 @@ import { createDrawerNavigator } from '@react-navigation/drawer';
 import ProjectScreen from '../screens/ProjectScreen';
 import TimesheetScreen from '../screens/TimesheetScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import UserManagementScreen from '../screens/UserManagementScreen';
 
 const Drawer = createDrawerNavigator<import('../types/navigation').MainDrawerParamList>();
 
@@ -38,6 +39,16 @@ export default function MainDrawer() {
           drawerLabel: 'Timesheet',
           drawerIcon: ({ color, size }) => (
             <Text style={{ color, fontSize: size }}>📊</Text>
+          ),
+        }}
+      />
+      <Drawer.Screen 
+        name="UserManagement" 
+        component={UserManagementScreen}
+        options={{
+          drawerLabel: 'User Management',
+          drawerIcon: ({ color, size }) => (
+            <Text style={{ color, fontSize: size }}>👥</Text>
           ),
         }}
       />

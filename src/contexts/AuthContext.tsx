@@ -1,10 +1,18 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../firebaseConfig';
+
+interface UserData {
+  uid: string;
+  email: string | null;
+  role: string;
+  createdAt: Date;
+}
 
 interface AuthContextType {
   user: User | null;
+  userData: UserData | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
@@ -23,11 +31,27 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
+      
+      if (user) {
+        // Fetch user data from Firestore
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            setUserData(userDoc.data() as UserData);
+          }
+        } catch (error) {
+          console.error('Error fetching user data:', error);
+        }
+      } else {
+        setUserData(null);
+      }
+      
       setLoading(false);
     });
 
@@ -48,12 +72,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const user = userCredential.user;
       
       // Store user data in Firestore with role field
-      await setDoc(doc(db, 'users', user.uid), {
+      const userData = {
         email: user.email,
         role: 'user',
         createdAt: new Date(),
         uid: user.uid
-      });
+      };
+      
+      await setDoc(doc(db, 'users', user.uid), userData);
+      setUserData(userData);
     } catch (error) {
       throw error;
     }
@@ -69,6 +96,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const value = {
     user,
+    userData,
     loading,
     signIn,
     signUp,

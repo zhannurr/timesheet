@@ -6,11 +6,11 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
 } from 'react-native';
 import { collection, addDoc, deleteDoc, doc, getDocs, query, where, onSnapshot, updateDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { useAuth } from '../contexts/AuthContext';
+import DeleteConfirmation from '../components/DeleteConfirmation';
 
 interface TimeEntry {
   id: string;
@@ -32,10 +32,19 @@ export default function TimesheetScreen({ navigation, route }: { navigation: any
     projectName: '',
     task: '',
     hours: '',
-
   });
   
-  const { user } = useAuth();
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
+    visible: boolean;
+    entryId: string | null;
+    hours: string;
+  }>({
+    visible: false,
+    entryId: null,
+    hours: '',
+  });
+  
+  const { user, userData } = useAuth();
   const { projectId, projectName } = route.params || {};
 
   useEffect(() => {
@@ -43,8 +52,16 @@ export default function TimesheetScreen({ navigation, route }: { navigation: any
       setNewEntry(prev => ({ ...prev, projectId, projectName }));
       
       const tasksRef = collection(db, 'tasks');
-      // Only show tasks created by the current user
-      const q = query(tasksRef, where('userId', '==', user.uid), where('projectId', '==', projectId));
+      let q;
+      
+      // Check if user is admin
+      if (userData?.role === 'admin') {
+        // Admin can see all tasks for this project
+        q = query(tasksRef, where('projectId', '==', projectId));
+      } else {
+        // Regular users only see their own tasks
+        q = query(tasksRef, where('userId', '==', user.uid), where('projectId', '==', projectId));
+      }
       
       const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const tasksData: TimeEntry[] = [];
@@ -56,11 +73,11 @@ export default function TimesheetScreen({ navigation, route }: { navigation: any
 
       return () => unsubscribe();
     }
-  }, [user, projectId]);
+  }, [user, userData, projectId]);
 
   const addTimeEntry = async () => {
     if (!newEntry.date || !newEntry.task || !newEntry.hours) {
-      Alert.alert('Error', 'Please fill in all required fields');
+      alert('Please fill in all required fields');
       return;
     }
 
@@ -94,36 +111,47 @@ export default function TimesheetScreen({ navigation, route }: { navigation: any
       });
       setShowAddForm(false);
     } catch (error) {
-      Alert.alert('Error', 'Failed to add time entry');
+      alert('Failed to add time entry');
     }
   };
 
-  const deleteTimeEntry = async (id: string, hours: string) => {
-    Alert.alert(
-      'Delete Entry',
-      'Are you sure you want to delete this time entry?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: async () => {
-          try {
-            await deleteDoc(doc(db, 'tasks', id));
-            
-            // Update project total hours
-            if (projectId) {
-              const projectRef = doc(db, 'projects', projectId);
-              const currentProject = await getDocs(query(collection(db, 'projects'), where('__name__', '==', projectId)));
-              if (!currentProject.empty) {
-                const projectData = currentProject.docs[0].data();
-                const newTotalHours = Math.max(0, (projectData.totalHours || 0) - parseFloat(hours));
-                await updateDoc(projectRef, { totalHours: newTotalHours });
-              }
-            }
-          } catch (error) {
-            Alert.alert('Error', 'Failed to delete time entry');
+  const showDeleteConfirmation = (entryId: string, hours: string) => {
+    setDeleteConfirmation({
+      visible: true,
+      entryId,
+      hours,
+    });
+  };
+
+  const hideDeleteConfirmation = () => {
+    setDeleteConfirmation({
+      visible: false,
+      entryId: null,
+      hours: '',
+    });
+  };
+
+  const confirmDeleteTimeEntry = async () => {
+    if (deleteConfirmation.entryId) {
+      try {
+        await deleteDoc(doc(db, 'tasks', deleteConfirmation.entryId));
+        
+        // Update project total hours
+        if (projectId) {
+          const projectRef = doc(db, 'projects', projectId);
+          const currentProject = await getDocs(query(collection(db, 'projects'), where('__name__', '==', projectId)));
+          if (!currentProject.empty) {
+            const projectData = currentProject.docs[0].data();
+            const newTotalHours = Math.max(0, (projectData.totalHours || 0) - parseFloat(deleteConfirmation.hours));
+            await updateDoc(projectRef, { totalHours: newTotalHours });
           }
-        }}
-      ]
-    );
+        }
+        
+        hideDeleteConfirmation();
+      } catch (error) {
+        console.error('Failed to delete time entry:', error);
+      }
+    }
   };
 
   const totalHours = timeEntries.reduce((sum, entry) => sum + parseFloat(entry.hours || '0'), 0);
@@ -190,14 +218,22 @@ export default function TimesheetScreen({ navigation, route }: { navigation: any
             <View style={styles.actionCell}>
               <TouchableOpacity 
                 style={styles.deleteButton}
-                onPress={() => deleteTimeEntry(entry.id, entry.hours)}
+                onPress={() => showDeleteConfirmation(entry.id, entry.hours)}
               >
-                <Text style={styles.deleteButtonText}>🗑️</Text>
+                <Text style={styles.deleteButtonText}>Delete🗑️</Text>
               </TouchableOpacity>
             </View>
           </View>
         ))}
       </ScrollView>
+
+      <DeleteConfirmation
+        visible={deleteConfirmation.visible}
+        title="Delete Time Entry"
+        message="Are you sure you want to delete this time entry? This action cannot be undone."
+        onConfirm={confirmDeleteTimeEntry}
+        onCancel={hideDeleteConfirmation}
+      />
     </View>
   );
 }
@@ -330,12 +366,13 @@ const styles = StyleSheet.create({
   },
   actionCell: {
     flex: 0.5,
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
   deleteButton: {
     padding: 5,
   },
   deleteButtonText: {
+    
     fontSize: 16,
   },
 });

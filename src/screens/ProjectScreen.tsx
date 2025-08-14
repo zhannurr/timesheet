@@ -6,78 +6,163 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
+  Modal,
 } from 'react-native';
-import { collection, addDoc, deleteDoc, doc, getDocs, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, addDoc, deleteDoc, doc, getDocs, query, where, onSnapshot, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { useAuth } from '../contexts/AuthContext';
+import DeleteConfirmation from '../components/DeleteConfirmation';
 
 interface Project {
   id: string;
   name: string;
   userId: string;
   totalHours: number;
+  assignedUsers: string[];
+}
+
+interface User {
+  uid: string;
+  email: string;
+  role: string;
 }
 
 export default function ProjectScreen({ navigation }: { navigation: any }) {
   const [projects, setProjects] = useState<Project[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showUserManagement, setShowUserManagement] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [newProject, setNewProject] = useState({
     name: ''
   });
-  const { user } = useAuth();
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
+    visible: boolean;
+    projectId: string | null;
+  }>({
+    visible: false,
+    projectId: null,
+  });
+  
+  const { user, userData } = useAuth();
+  const isAdmin = userData?.role === 'admin';
 
   useEffect(() => {
-    // Projects are public - no user filter needed
-    const projectsRef = collection(db, 'projects');
-    
-    const unsubscribe = onSnapshot(projectsRef, (querySnapshot) => {
-      const projectsData: Project[] = [];
-      querySnapshot.forEach((doc) => {
-        projectsData.push({ id: doc.id, ...doc.data() } as Project);
+    if (user) {
+      const projectsRef = collection(db, 'projects');
+      let q;
+      
+      if (isAdmin) {
+        // Admin can see all projects
+        q = projectsRef;
+      } else {
+        // Regular users only see projects they're assigned to
+        q = query(projectsRef, where('assignedUsers', 'array-contains', user.uid));
+      }
+      
+      const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const projectsData: Project[] = [];
+        querySnapshot.forEach((doc) => {
+          projectsData.push({ id: doc.id, ...doc.data() } as Project);
+        });
+        setProjects(projectsData);
       });
-      setProjects(projectsData);
-    });
 
-    return () => unsubscribe();
-  }, []);
+      return () => unsubscribe();
+    }
+  }, [user, isAdmin]);
+
+  useEffect(() => {
+    // Fetch all users for admin management
+    if (isAdmin) {
+      const usersRef = collection(db, 'users');
+      
+      const unsubscribe = onSnapshot(usersRef, (querySnapshot) => {
+        const usersData: User[] = [];
+        querySnapshot.forEach((doc) => {
+          usersData.push({ uid: doc.id, ...doc.data() } as User);
+        });
+        setUsers(usersData);
+      });
+
+      return () => unsubscribe();
+    }
+  }, [isAdmin]);
 
   const addProject = async () => {
     if (!newProject.name) {
-      Alert.alert('Error', 'Please fill in all fields');
+      alert('Please fill in all fields');
       return;
     }
 
     try {
       const projectData = {
         ...newProject,
-        createdBy: user?.uid, // Track who created it
-        createdAt: new Date()
+        createdBy: user?.uid,
+        createdAt: new Date(),
+        assignedUsers: [user?.uid] // Creator is automatically assigned
       };
 
       await addDoc(collection(db, 'projects'), projectData);
       setNewProject({ name: '' });
       setShowAddForm(false);
     } catch (error) {
-      Alert.alert('Error', 'Failed to create project');
+      alert('Failed to create project');
     }
   };
 
-  const deleteProject = async (id: string) => {
-    Alert.alert(
-      'Delete Project',
-      'Are you sure you want to delete this project?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: async () => {
-          try {
-            await deleteDoc(doc(db, 'projects', id));
-          } catch (error) {
-            Alert.alert('Error', 'Failed to delete project');
-          }
-        }}
-      ]
-    );
+  const addUserToProject = async (projectId: string, userId: string) => {
+    try {
+      const projectRef = doc(db, 'projects', projectId);
+      await updateDoc(projectRef, {
+        assignedUsers: arrayUnion(userId)
+      });
+    } catch (error) {
+      alert('Failed to add user to project');
+    }
+  };
+
+  const removeUserFromProject = async (projectId: string, userId: string) => {
+    try {
+      const projectRef = doc(db, 'projects', projectId);
+      await updateDoc(projectRef, {
+        assignedUsers: arrayRemove(userId)
+      });
+    } catch (error) {
+      alert('Failed to remove user from project');
+    }
+  };
+
+  const openUserManagement = (project: Project) => {
+    navigation.navigate('UserManagement', { 
+      projectId: project.id, 
+      projectName: project.name 
+    });
+  };
+
+  const showDeleteConfirmation = (projectId: string) => {
+    setDeleteConfirmation({
+      visible: true,
+      projectId,
+    });
+  };
+
+  const hideDeleteConfirmation = () => {
+    setDeleteConfirmation({
+      visible: false,
+      projectId: null,
+    });
+  };
+
+  const confirmDeleteProject = async () => {
+    if (deleteConfirmation.projectId) {
+      try {
+        await deleteDoc(doc(db, 'projects', deleteConfirmation.projectId));
+        hideDeleteConfirmation();
+      } catch (error) {
+        console.error('Failed to delete project:', error);
+      }
+    }
   };
 
   const openProjectTimesheet = (project: Project) => {
@@ -106,17 +191,19 @@ export default function ProjectScreen({ navigation }: { navigation: any }) {
           <Text style={styles.summaryLabel}>Total Hours</Text>
           <Text style={styles.summaryValue}>{totalHours}</Text>
         </View>
-        <TouchableOpacity 
-          style={styles.addButton}
-          onPress={() => setShowAddForm(!showAddForm)}
-        >
-          <Text style={styles.addButtonText}>
-            {showAddForm ? 'Cancel' : '+ New Project'}
-          </Text>
-        </TouchableOpacity>
+        {isAdmin && (
+          <TouchableOpacity 
+            style={styles.addButton}
+            onPress={() => setShowAddForm(!showAddForm)}
+          >
+            <Text style={styles.addButtonText}>
+              {showAddForm ? 'Cancel' : '+ New Project'}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
-      {showAddForm && (
+      {showAddForm && isAdmin && (
         <View style={styles.addForm}>
           <TextInput
             style={styles.input}
@@ -140,12 +227,24 @@ export default function ProjectScreen({ navigation }: { navigation: any }) {
           >
             <View style={styles.projectHeader}>
               <Text style={styles.projectName}>{project.name}</Text>
-              <TouchableOpacity 
-                style={styles.deleteButton}
-                onPress={() => deleteProject(project.id)}
-              >
-                <Text style={styles.deleteButtonText}>🗑️</Text>
-              </TouchableOpacity>
+              <View style={styles.projectActions}>
+                {isAdmin && (
+                  <TouchableOpacity 
+                    style={styles.manageUsersButton}
+                    onPress={() => openUserManagement(project)}
+                  >
+                    <Text style={styles.manageUsersButtonText}>👥</Text>
+                  </TouchableOpacity>
+                )}
+                {isAdmin && (
+                  <TouchableOpacity 
+                    style={styles.deleteButton}
+                    onPress={() => showDeleteConfirmation(project.id)}
+                  >
+                    <Text style={styles.deleteButtonText}>🗑️</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
         
             <View style={styles.projectFooter}>
@@ -155,6 +254,69 @@ export default function ProjectScreen({ navigation }: { navigation: any }) {
           </TouchableOpacity>
         ))}
       </ScrollView>
+
+      {/* User Management Modal */}
+      <Modal
+        visible={showUserManagement}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowUserManagement(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                Manage Users - {selectedProject?.name}
+              </Text>
+              <TouchableOpacity 
+                style={styles.closeButton}
+                onPress={() => setShowUserManagement(false)}
+              >
+                <Text style={styles.closeButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.usersList}>
+              {users.map((userItem) => {
+                const isAssigned = selectedProject?.assignedUsers?.includes(userItem.uid);
+                return (
+                  <View key={userItem.uid} style={styles.userItem}>
+                    <View style={styles.userInfo}>
+                      <Text style={styles.userEmail}>{userItem.email}</Text>
+                      <Text style={styles.userRole}>{userItem.role}</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={[
+                        styles.userActionButton,
+                        isAssigned ? styles.removeUserButton : styles.addUserButton
+                      ]}
+                      onPress={() => {
+                        if (isAssigned) {
+                          removeUserFromProject(selectedProject!.id, userItem.uid);
+                        } else {
+                          addUserToProject(selectedProject!.id, userItem.uid);
+                        }
+                      }}
+                    >
+                      <Text style={styles.userActionButtonText}>
+                        {isAssigned ? 'Remove' : 'Add'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <DeleteConfirmation
+        visible={deleteConfirmation.visible}
+        title="Delete Project"
+        message="Are you sure you want to delete this project? This action cannot be undone."
+        onConfirm={confirmDeleteProject}
+        onCancel={hideDeleteConfirmation}
+      />
     </View>
   );
 }
@@ -279,6 +441,20 @@ const styles = StyleSheet.create({
     color: '#333',
     flex: 1,
   },
+  projectActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  manageUsersButton: {
+    padding: 8,
+    backgroundColor: '#007AFF',
+    borderRadius: 6,
+  },
+  manageUsersButtonText: {
+    color: '#fff',
+    fontSize: 16,
+  },
   deleteButton: {
     padding: 5,
   },
@@ -300,5 +476,85 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#999',
     fontStyle: 'italic',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    width: '90%',
+    maxHeight: '80%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    flex: 1,
+  },
+  closeButton: {
+    padding: 5,
+  },
+  closeButtonText: {
+    fontSize: 20,
+    color: '#666',
+  },
+  usersList: {
+    padding: 20,
+  },
+  userItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  userInfo: {
+    flex: 1,
+  },
+  userEmail: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '500',
+  },
+  userRole: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 2,
+  },
+  userActionButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  addUserButton: {
+    backgroundColor: '#34C759',
+  },
+  removeUserButton: {
+    backgroundColor: '#FF3B30',
+  },
+  userActionButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
