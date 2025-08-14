@@ -85,22 +85,22 @@ export default function MainDrawer() {
       <Drawer.Screen 
         name="Timesheet" 
         component={TimesheetScreen}
-        // options={{
-        //   drawerLabel: 'Timesheet',
-        //   drawerIcon: ({ color, size }) => (
-        //     <Text style={[styles.drawerIcon, { color, fontSize: size }]}>📊</Text>
-        //   ),
-        // }}
+        options={{
+          drawerLabel: 'Timesheet',
+          drawerIcon: ({ color, size }) => (
+            <Text style={[styles.drawerIcon, { color, fontSize: size }]}>📊</Text>
+          ),
+        }}
       />
       <Drawer.Screen 
         name="UserManagement" 
         component={UserManagementScreen}
-        // options={{
-        //   drawerLabel: 'User Management',
-        //   drawerIcon: ({ color, size }) => (
-        //     <Text style={[styles.drawerIcon, { color, fontSize: size }]}>👥</Text>
-        //   ),
-        // }}
+        options={{
+          drawerLabel: 'User Management',
+          drawerIcon: ({ color, size }) => (
+            <Text style={[styles.drawerIcon, { color, fontSize: size }]}>👥</Text>
+          ),
+        }}
       />
       <Drawer.Screen 
         name="Profile" 
