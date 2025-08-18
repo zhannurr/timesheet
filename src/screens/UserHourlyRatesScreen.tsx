@@ -99,13 +99,21 @@ export default function UserHourlyRatesScreen({ navigation }: { navigation: any 
         {users.map((user) => (
           <View key={user.uid} style={styles.userItem}>
             <View style={styles.userInfo}>
-              <Text style={styles.userEmail}>{user.email}</Text>
-              <View style={styles.userMeta}>
-                <Text style={styles.userRole}>{user.role}</Text>
-                <Text style={styles.currentRate}>
-                  Current: ₸{user.hourlyRate || 0}/hr
-                </Text>
-              </View>
+              <TouchableOpacity 
+                style={styles.userInfoTouchable}
+                onPress={() => navigation.navigate('UserTimesheet', { 
+                  userId: user.uid, 
+                  userEmail: user.email 
+                })}
+              >
+                <Text style={styles.userEmail}>{user.email}</Text>
+                <View style={styles.userMeta}>
+                  <Text style={styles.userRole}>{user.role}</Text>
+                  <Text style={styles.currentRate}>
+                    Current: ₸{user.hourlyRate || 0}/hr
+                  </Text>
+                </View>
+              </TouchableOpacity>
             </View>
             
             {editingUser === user.uid ? (
@@ -299,5 +307,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 100,
     paddingHorizontal: 20,
+  },
+  userInfoTouchable: {
+    flex: 1,
   },
 });

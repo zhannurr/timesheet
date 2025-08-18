@@ -8,6 +8,7 @@ import ProfileScreen from '../screens/ProfileScreen';
 import UserManagementScreen from '../screens/UserManagementScreen';
 import UserHourlyRatesScreen from '../screens/UserHourlyRatesScreen';
 import NewEntryScreen from '../screens/NewEntryScreen';
+import UserTimesheetScreen from '../screens/UserTimesheetScreen';
 
 const Drawer = createDrawerNavigator<import('../types/navigation').MainDrawerParamList>();
 
@@ -149,12 +150,23 @@ export default function MainDrawer() {
         name="UserHourlyRates" 
         component={UserHourlyRatesScreen}
         options={{
-          drawerLabel: 'Hourly Rates',
+          drawerLabel: 'Users',
           drawerIcon: ({ color, size }) => (
             <Text style={[styles.drawerIcon, { color, fontSize: size }]}>💰</Text>
           ),
           // Hide from drawer if not admin
           drawerItemStyle: isAdmin ? {} : { display: 'none' },
+        }}
+      />
+      <Drawer.Screen 
+        name="UserTimesheet" 
+        component={UserTimesheetScreen}
+        options={{
+          drawerLabel: 'User Timesheet',
+          drawerIcon: ({ color, size }) => (
+            <Text style={[styles.drawerIcon, { color, fontSize: size }]}>📊</Text>
+          ),
+          drawerItemStyle: { display: 'none' },
         }}
       />
       <Drawer.Screen 
@@ -234,5 +246,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#dc2626',
+  },
+  userInfoTouchable: {
+    flex: 1,
   },
 });
