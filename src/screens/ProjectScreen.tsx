@@ -32,12 +32,9 @@ interface User {
 
 export default function ProjectScreen({ navigation }: { navigation: any }) {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [showUserManagement, setShowUserManagement] = useState(false);
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [newProject, setNewProject] = useState({
     name: ''
   });
@@ -64,11 +61,6 @@ export default function ProjectScreen({ navigation }: { navigation: any }) {
     }
   }, [user, isAdmin]);
 
-  const usersQuery = useMemo(() => {
-    if (!isAdmin) return null;
-    return collection(db, 'users');
-  }, [isAdmin]);
-
   // Optimized data fetching with error handling
   const fetchProjects = useCallback(async () => {
     if (!projectsQuery) return;
@@ -87,21 +79,6 @@ export default function ProjectScreen({ navigation }: { navigation: any }) {
       setLoading(false);
     }
   }, [projectsQuery]);
-
-  const fetchUsers = useCallback(async () => {
-    if (!usersQuery) return;
-    
-    try {
-      const querySnapshot = await getDocs(usersQuery);
-      const usersData: User[] = [];
-      querySnapshot.forEach((doc) => {
-        usersData.push({ uid: doc.id, ...doc.data() } as User);
-      });
-      setUsers(usersData);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-    }
-  }, [usersQuery]);
 
   // Set up real-time listeners with optimization
   useEffect(() => {
@@ -126,32 +103,12 @@ export default function ProjectScreen({ navigation }: { navigation: any }) {
     return () => unsubscribe();
   }, [projectsQuery]);
 
-  useEffect(() => {
-    if (!usersQuery) return;
-
-    const unsubscribe = onSnapshot(
-      usersQuery,
-      (querySnapshot) => {
-        const usersData: User[] = [];
-        querySnapshot.forEach((doc) => {
-          usersData.push({ uid: doc.id, ...doc.data() } as User);
-        });
-        setUsers(usersData);
-      },
-      (error) => {
-        console.error('Error in users listener:', error);
-      }
-    );
-
-    return () => unsubscribe();
-  }, [usersQuery]);
-
   // Pull-to-refresh functionality
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([fetchProjects(), fetchUsers()]);
+    await fetchProjects();
     setRefreshing(false);
-  }, [fetchProjects, fetchUsers]);
+  }, [fetchProjects]);
 
   const addProject = async () => {
     if (!newProject.name) {
@@ -198,8 +155,10 @@ export default function ProjectScreen({ navigation }: { navigation: any }) {
   };
 
   const openUserManagement = (project: Project) => {
-    setSelectedProject(project);
-    setShowUserManagement(true);
+    navigation.navigate('UserManagement', { 
+      projectId: project.id, 
+      projectName: project.name 
+    });
   };
 
   const showDeleteConfirmation = (projectId: string) => {
@@ -341,61 +300,6 @@ export default function ProjectScreen({ navigation }: { navigation: any }) {
           </View>
         )}
       </ScrollView>
-
-      {/* User Management Modal */}
-      <Modal
-        visible={showUserManagement}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowUserManagement(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                Manage Users - {selectedProject?.name}
-              </Text>
-              <TouchableOpacity 
-                style={styles.closeButton}
-                onPress={() => setShowUserManagement(false)}
-              >
-                <Text style={styles.closeButtonText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.usersList}>
-              {users.map((userItem) => {
-                const isAssigned = selectedProject?.assignedUsers?.includes(userItem.uid);
-                return (
-                  <View key={userItem.uid} style={styles.userItem}>
-                    <View style={styles.userInfo}>
-                      <Text style={styles.userEmail}>{userItem.email}</Text>
-                      <Text style={styles.userRole}>{userItem.role}</Text>
-                    </View>
-                    <TouchableOpacity
-                      style={[
-                        styles.userActionButton,
-                        isAssigned ? styles.removeUserButton : styles.addUserButton
-                      ]}
-                      onPress={() => {
-                        if (isAssigned) {
-                          removeUserFromProject(selectedProject!.id, userItem.uid);
-                        } else {
-                          addUserToProject(selectedProject!.id, userItem.uid);
-                        }
-                      }}
-                    >
-                      <Text style={styles.userActionButtonText}>
-                        {isAssigned ? 'Remove' : 'Add'}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                );
-              })}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
 
       <DeleteConfirmation
         visible={deleteConfirmation.visible}
