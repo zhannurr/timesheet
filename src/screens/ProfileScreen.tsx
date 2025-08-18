@@ -9,7 +9,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 
 export default function ProfileScreen({ navigation }: { navigation: any }) {
-  const { userData, logout, promoteToAdmin } = useAuth();
+  const { userData, logout } = useAuth();
 
 
 
@@ -45,22 +45,7 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
           )}
         </View>
         
-        {userData?.role !== 'admin' && (
-          <TouchableOpacity 
-            style={styles.promoteButton}
-            onPress={async () => {
-              try {
-                await promoteToAdmin(userData?.uid || '');
-                Alert.alert('Success', 'You have been promoted to admin!');
-              } catch (error) {
-                Alert.alert('Error', 'Failed to promote to admin. Please try again.');
-              }
-            }}
-          >
-            <Text style={styles.promoteButtonText}>🚀 Promote to Admin (Test)</Text>
-          </TouchableOpacity>
-        )}
-        
+      
         <TouchableOpacity style={styles.signOutButton} onPress={logout}>
           <Text style={styles.signOutText}>Sign Out</Text>
         </TouchableOpacity>
@@ -155,17 +140,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#999',
   },
-  promoteButton: {
-    backgroundColor: '#4CAF50', // A green color for promotion
-    paddingHorizontal: 30,
-    paddingVertical: 15,
-    borderRadius: 10,
-    marginBottom: 20,
-  },
-  promoteButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
+
+
 });

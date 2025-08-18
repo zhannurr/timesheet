@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, View, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { Text, View, TouchableOpacity, StyleSheet } from 'react-native';
 import { createDrawerNavigator, DrawerContentScrollView, DrawerItemList } from '@react-navigation/drawer';
 import { useAuth } from '../contexts/AuthContext';
 import ProjectScreen from '../screens/ProjectScreen';
@@ -17,12 +17,23 @@ function CustomDrawerContent(props: any) {
 
   // Filter drawer items based on user role
   const filteredDrawerItems = props.items ? props.items.filter((item: any) => {
+    // Handle edge cases where userData or role might be undefined
+    if (!userData || !userData.role) {
+      return !['UserHourlyRates'].includes(item.key);
+    }
+    
     // Show all items for admin users
-    if (userData?.role === 'admin') {
+    if (userData.role === 'admin') {
       return true;
     }
+    
     // Hide admin-only items for regular users
-    return !['UserHourlyRates'].includes(item.key);
+    const isAdminOnlyItem = ['UserHourlyRates'].includes(item.key);
+    if (isAdminOnlyItem) {
+      return false;
+    }
+    
+    return true;
   }) : [];
 
   return (
@@ -57,6 +68,11 @@ function CustomDrawerContent(props: any) {
 }
 
 export default function MainDrawer() {
+  const { userData } = useAuth();
+  
+  // Check if user is admin
+  const isAdmin = userData?.role === 'admin';
+  
   return (
     <Drawer.Navigator
       initialRouteName="Projects"
@@ -101,6 +117,8 @@ export default function MainDrawer() {
           drawerIcon: ({ color, size }) => (
             <Text style={[styles.drawerIcon, { color, fontSize: size }]}>📊</Text>
           ),
+          drawerItemStyle: { display: 'none' },
+
         }}
       />
       <Drawer.Screen 
@@ -111,6 +129,8 @@ export default function MainDrawer() {
           drawerIcon: ({ color, size }) => (
             <Text style={[styles.drawerIcon, { color, fontSize: size }]}>➕</Text>
           ),
+          drawerItemStyle: { display: 'none' },
+
         }}
       />
       <Drawer.Screen 
@@ -121,6 +141,8 @@ export default function MainDrawer() {
           drawerIcon: ({ color, size }) => (
             <Text style={[styles.drawerIcon, { color, fontSize: size }]}>👥</Text>
           ),
+          drawerItemStyle: { display: 'none' },
+
         }}
       />
       <Drawer.Screen 
@@ -131,6 +153,8 @@ export default function MainDrawer() {
           drawerIcon: ({ color, size }) => (
             <Text style={[styles.drawerIcon, { color, fontSize: size }]}>💰</Text>
           ),
+          // Hide from drawer if not admin
+          drawerItemStyle: isAdmin ? {} : { display: 'none' },
         }}
       />
       <Drawer.Screen 

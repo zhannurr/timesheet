@@ -45,7 +45,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           const userDoc = await getDoc(doc(db, 'users', user.uid));
           if (userDoc.exists()) {
-            setUserData(userDoc.data() as UserData);
+            const userDataFromFirestore = userDoc.data() as UserData;
+            setUserData(userDataFromFirestore);
+          } else {
+            // No user document found, create a new one
+            const userData = {
+              email: user.email,
+              role: 'user',
+              createdAt: new Date(),
+              uid: user.uid,
+              hourlyRate: 0 // Default hourly rate
+            };
+            await setDoc(doc(db, 'users', user.uid), userData);
+            setUserData(userData);
           }
         } catch (error) {
           console.error('Error fetching user data:', error);
@@ -64,6 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await signInWithEmailAndPassword(auth, email, password);
     } catch (error) {
+      console.error('AuthContext - signIn error:', error);
       throw error;
     }
   };
