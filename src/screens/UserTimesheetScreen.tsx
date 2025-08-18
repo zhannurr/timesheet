@@ -131,7 +131,7 @@ export default function UserTimesheetScreen({ navigation, route }: UserTimesheet
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('UserHourlyRates')}>
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
         <Text style={styles.title}>{userEmail} Timesheet</Text>
