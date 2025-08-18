@@ -29,6 +29,7 @@ export default function TimesheetScreen({ navigation, route }: { navigation: any
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [userEmails, setUserEmails] = useState<{[key: string]: string}>({});
   const [deleteConfirmation, setDeleteConfirmation] = useState<{
     visible: boolean;
     entryId: string | null;
@@ -96,6 +97,31 @@ export default function TimesheetScreen({ navigation, route }: { navigation: any
 
     return () => unsubscribe();
   }, [tasksQuery]);
+
+  // Fetch user emails for admin view
+  const fetchUserEmails = useCallback(async () => {
+    if (userData?.role !== 'admin') return;
+
+    try {
+      const usersRef = collection(db, 'users');
+      const usersSnapshot = await getDocs(usersRef);
+      const emailsMap: {[key: string]: string} = {};
+      usersSnapshot.forEach((doc) => {
+        const userData = doc.data();
+        emailsMap[doc.id] = userData.email || 'Unknown';
+      });
+      setUserEmails(emailsMap);
+    } catch (error) {
+      console.error('Error fetching user emails:', error);
+    }
+  }, [userData?.role]);
+
+  // Fetch user emails when component mounts (for admin)
+  useEffect(() => {
+    if (userData?.role === 'admin') {
+      fetchUserEmails();
+    }
+  }, [userData?.role, fetchUserEmails]);
 
   // Pull-to-refresh functionality
   const onRefresh = useCallback(async () => {
@@ -207,7 +233,9 @@ export default function TimesheetScreen({ navigation, route }: { navigation: any
           <Text style={[styles.headerCell, styles.dateCell]}>Date</Text>
           <Text style={[styles.headerCell, styles.taskCell]}>Task</Text>
           <Text style={[styles.headerCell, styles.hoursCell]}>Hours</Text>
-          {/* <Text style={[styles.headerCell, styles.rateCell]}>Rate</Text> */}
+          {userData?.role === 'admin' && (
+            <Text style={[styles.headerCell, styles.userCell]}>User</Text>
+          )}
           <Text style={[styles.headerCell, styles.actionCell]}>Actions</Text>
         </View>
 
@@ -218,7 +246,9 @@ export default function TimesheetScreen({ navigation, route }: { navigation: any
               <SkeletonLoader width="80%" height={16} />
               <SkeletonLoader width="90%" height={16} />
               <SkeletonLoader width="60%" height={16} />
-              <SkeletonLoader width="70%" height={16} />
+              {userData?.role === 'admin' && (
+                <SkeletonLoader width="70%" height={16} />
+              )}
               <SkeletonLoader width="70%" height={16} />
             </View>
           ))
@@ -228,9 +258,11 @@ export default function TimesheetScreen({ navigation, route }: { navigation: any
               <Text style={[styles.cell, styles.dateCell]}>{entry.date}</Text>
               <Text style={[styles.cell, styles.taskCell]}>{entry.task}</Text>
               <Text style={[styles.cell, styles.hoursCell]}>{entry.hours}</Text>
-              {/* <Text style={[styles.cell, styles.rateCell]}>
-                {userData?.hourlyRate ? `₸${userData.hourlyRate.toFixed(2)}` : '-'}
-              </Text> */}
+              {userData?.role === 'admin' && (
+                <Text style={[styles.cell, styles.userCell]}>
+                  {userEmails[entry.userId] || 'Unknown'}
+                </Text>
+              )}
               <View style={styles.actionCell}>
                 <TouchableOpacity 
                   style={styles.deleteButton}
@@ -445,5 +477,9 @@ const styles = StyleSheet.create({
   emptyStateSubtext: {
     fontSize: 14,
     color: '#888',
+  },
+  userCell: {
+    flex: 1,
+    textAlign: 'center',
   },
 });
