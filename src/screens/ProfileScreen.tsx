@@ -9,7 +9,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 
 export default function ProfileScreen({ navigation }: { navigation: any }) {
-  const { user, logout } = useAuth();
+  const { userData, logout, promoteToAdmin } = useAuth();
 
 
 
@@ -26,11 +26,40 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
       <View style={styles.profileInfo}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>
-            {user?.email?.charAt(0).toUpperCase() || 'U'}
+            {userData?.email?.charAt(0).toUpperCase() || 'U'}
           </Text>
         </View>
         
-        <Text style={styles.email}>{user?.email || 'No email'}</Text>
+        <Text style={styles.email}>{userData?.email || 'No email'}</Text>
+        
+        <View style={styles.userDetails}>
+          <Text style={styles.role}>
+            Role: {userData?.role ? userData.role.charAt(0).toUpperCase() + userData.role.slice(1) : 'User'}
+          </Text>
+          {userData?.hourlyRate ? (
+            <Text style={styles.hourlyRate}>
+              Hourly Rate: ₸{userData.hourlyRate.toFixed(2)}/hr
+            </Text>
+          ) : (
+            <Text style={styles.noRate}>No hourly rate set</Text>
+          )}
+        </View>
+        
+        {userData?.role !== 'admin' && (
+          <TouchableOpacity 
+            style={styles.promoteButton}
+            onPress={async () => {
+              try {
+                await promoteToAdmin(userData?.uid || '');
+                Alert.alert('Success', 'You have been promoted to admin!');
+              } catch (error) {
+                Alert.alert('Error', 'Failed to promote to admin. Please try again.');
+              }
+            }}
+          >
+            <Text style={styles.promoteButtonText}>🚀 Promote to Admin (Test)</Text>
+          </TouchableOpacity>
+        )}
         
         <TouchableOpacity style={styles.signOutButton} onPress={logout}>
           <Text style={styles.signOutText}>Sign Out</Text>
@@ -108,5 +137,35 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  userDetails: {
+    marginBottom: 20,
+  },
+  role: {
+    fontSize: 16,
+    color: '#555',
+    marginBottom: 5,
+  },
+  hourlyRate: {
+    fontSize: 16,
+    color: '#007AFF',
+    fontWeight: 'bold',
+  },
+  noRate: {
+    fontSize: 16,
+    color: '#999',
+  },
+  promoteButton: {
+    backgroundColor: '#4CAF50', // A green color for promotion
+    paddingHorizontal: 30,
+    paddingVertical: 15,
+    borderRadius: 10,
+    marginBottom: 20,
+  },
+  promoteButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });

@@ -13,5 +13,6 @@ export type MainDrawerParamList = {
   Timesheet: { projectId: string; projectName: string };
   NewEntry: { projectId: string; projectName: string };
   UserManagement: { projectId: string; projectName: string };
+  UserHourlyRates: undefined;
   Profile: undefined;
 };

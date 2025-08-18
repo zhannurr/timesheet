@@ -8,6 +8,7 @@ interface UserData {
   email: string | null;
   role: string;
   createdAt: Date;
+  hourlyRate?: number; // Hourly rate in tenge
 }
 
 interface AuthContextType {
@@ -17,6 +18,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  promoteToAdmin: (userId: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -76,7 +78,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: user.email,
         role: 'user',
         createdAt: new Date(),
-        uid: user.uid
+        uid: user.uid,
+        hourlyRate: 0 // Default hourly rate
       };
       
       await setDoc(doc(db, 'users', user.uid), userData);
@@ -94,6 +97,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const promoteToAdmin = async (userId: string) => {
+    try {
+      const userRef = doc(db, 'users', userId);
+      await setDoc(userRef, { role: 'admin' }, { merge: true });
+      setUserData(prev => prev ? { ...prev, role: 'admin' } : null);
+    } catch (error) {
+      console.error('Error promoting user to admin:', error);
+      throw error;
+    }
+  };
+
   const value = {
     user,
     userData,
@@ -101,6 +115,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signIn,
     signUp,
     logout,
+    promoteToAdmin,
   };
 
   return (

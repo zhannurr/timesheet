@@ -29,7 +29,7 @@ export default function NewEntryScreen({ navigation, route }: NewEntryScreenProp
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   
-  const { user } = useAuth();
+  const { user, userData } = useAuth();
   const { projectId, projectName } = route.params || {};
 
   useEffect(() => {
@@ -172,6 +172,32 @@ export default function NewEntryScreen({ navigation, route }: NewEntryScreenProp
           </View>
 
           <View style={styles.inputGroup}>
+            <Text style={styles.label}>Hours *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="0.0"
+              value={newEntry.hours}
+              onChangeText={handleHoursChange}
+              keyboardType="numeric"
+              editable={!submitting}
+            />
+            {userData?.hourlyRate ? (
+              <Text style={styles.rateInfo}>
+                Your hourly rate: ₸{userData.hourlyRate.toFixed(2)}/hr
+              </Text>
+            ) : (
+              <Text style={styles.noRateInfo}>
+                No hourly rate set. Contact admin to set your rate.
+              </Text>
+            )}
+            {userData?.hourlyRate && newEntry.hours && parseFloat(newEntry.hours) > 0 && (
+              <Text style={styles.earningsPreview}>
+                Estimated earnings: ₸{(parseFloat(newEntry.hours) * userData.hourlyRate).toFixed(2)}
+              </Text>
+            )}
+          </View>
+
+          <View style={styles.inputGroup}>
             <Text style={styles.label}>Task *</Text>
             <TextInput
               style={styles.input}
@@ -184,17 +210,6 @@ export default function NewEntryScreen({ navigation, route }: NewEntryScreenProp
             />
           </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Hours *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="0.0"
-              value={newEntry.hours}
-              onChangeText={handleHoursChange}
-              keyboardType="numeric"
-              editable={!submitting}
-            />
-          </View>
 
           <View style={styles.buttonContainer}>
             <TouchableOpacity 
@@ -344,5 +359,23 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.7,
+  },
+  rateInfo: {
+    fontSize: 14,
+    color: '#007AFF',
+    marginTop: 8,
+    textAlign: 'right',
+  },
+  noRateInfo: {
+    fontSize: 14,
+    color: '#6c757d',
+    marginTop: 8,
+    textAlign: 'right',
+  },
+  earningsPreview: {
+    fontSize: 14,
+    color: '#333',
+    marginTop: 8,
+    textAlign: 'right',
   },
 });

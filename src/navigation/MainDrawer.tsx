@@ -6,6 +6,7 @@ import ProjectScreen from '../screens/ProjectScreen';
 import TimesheetScreen from '../screens/TimesheetScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import UserManagementScreen from '../screens/UserManagementScreen';
+import UserHourlyRatesScreen from '../screens/UserHourlyRatesScreen';
 import NewEntryScreen from '../screens/NewEntryScreen';
 
 const Drawer = createDrawerNavigator<import('../types/navigation').MainDrawerParamList>();
@@ -14,6 +15,15 @@ const Drawer = createDrawerNavigator<import('../types/navigation').MainDrawerPar
 function CustomDrawerContent(props: any) {
   const { logout, userData } = useAuth();
 
+  // Filter drawer items based on user role
+  const filteredDrawerItems = props.items ? props.items.filter((item: any) => {
+    // Show all items for admin users
+    if (userData?.role === 'admin') {
+      return true;
+    }
+    // Hide admin-only items for regular users
+    return !['UserHourlyRates'].includes(item.key);
+  }) : [];
 
   return (
     <DrawerContentScrollView {...props} style={styles.drawerContent}>
@@ -33,7 +43,7 @@ function CustomDrawerContent(props: any) {
       </View>
 
       {/* Navigation items */}
-      <DrawerItemList {...props} />
+      <DrawerItemList {...props} items={filteredDrawerItems} />
 
       {/* Logout button */}
       <View style={styles.logoutContainer}>
@@ -110,6 +120,16 @@ export default function MainDrawer() {
           drawerLabel: 'User Management',
           drawerIcon: ({ color, size }) => (
             <Text style={[styles.drawerIcon, { color, fontSize: size }]}>👥</Text>
+          ),
+        }}
+      />
+      <Drawer.Screen 
+        name="UserHourlyRates" 
+        component={UserHourlyRatesScreen}
+        options={{
+          drawerLabel: 'Hourly Rates',
+          drawerIcon: ({ color, size }) => (
+            <Text style={[styles.drawerIcon, { color, fontSize: size }]}>💰</Text>
           ),
         }}
       />

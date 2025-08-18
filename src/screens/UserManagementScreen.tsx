@@ -14,6 +14,7 @@ interface User {
   uid: string;
   email: string;
   role: string;
+  hourlyRate?: number;
 }
 
 interface Project {
@@ -93,6 +94,14 @@ export default function UserManagementScreen({ navigation, route }: { navigation
       <View style={styles.projectInfo}>
         <Text style={styles.projectName}>{projectName}</Text>
         <Text style={styles.projectSubtitle}>Add or remove users from this project</Text>
+        {userData?.role === 'admin' && (
+          <TouchableOpacity 
+            style={styles.hourlyRatesButton}
+            onPress={() => navigation.navigate('UserHourlyRates')}
+          >
+            <Text style={styles.hourlyRatesButtonText}>💰 Manage Hourly Rates</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <ScrollView style={styles.usersList}>
@@ -104,6 +113,11 @@ export default function UserManagementScreen({ navigation, route }: { navigation
                 <Text style={styles.userEmail}>{userItem.email}</Text>
                 <View style={styles.userMeta}>
                   <Text style={styles.userRole}>{userItem.role}</Text>
+                  {userItem.hourlyRate !== undefined && (
+                    <View style={styles.hourlyRateBadge}>
+                                             <Text style={styles.hourlyRateBadgeText}>₸{userItem.hourlyRate.toFixed(2)}/hr</Text>
+                    </View>
+                  )}
                   {assigned && (
                     <View style={styles.assignedBadge}>
                       <Text style={styles.assignedBadgeText}>Assigned</Text>
@@ -220,6 +234,17 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 12,
   },
+  hourlyRateBadge: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  hourlyRateBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
   assignedBadge: {
     backgroundColor: '#34C759',
     paddingHorizontal: 8,
@@ -252,6 +277,20 @@ const styles = StyleSheet.create({
   toggleButtonText: {
     color: '#fff',
     fontSize: 24,
+    fontWeight: 'bold',
+  },
+  hourlyRatesButton: {
+    marginTop: 15,
+    backgroundColor: '#007AFF',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  hourlyRatesButtonText: {
+    color: '#fff',
+    fontSize: 16,
     fontWeight: 'bold',
   },
 });

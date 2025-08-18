@@ -149,6 +149,12 @@ export default function TimesheetScreen({ navigation, route }: { navigation: any
     [timeEntries]
   );
 
+  // Calculate total earnings based on user's hourly rate
+  const totalEarnings = useMemo(() => {
+    if (!userData?.hourlyRate) return 0;
+    return totalHours * userData.hourlyRate;
+  }, [totalHours, userData?.hourlyRate]);
+
   const navigateToNewEntry = () => {
     navigation.navigate('NewEntry', { projectId, projectName });
   };
@@ -171,7 +177,17 @@ export default function TimesheetScreen({ navigation, route }: { navigation: any
       </View>
 
       <View style={styles.summary}>
-        <Text style={styles.summaryText}>Total Hours: {totalHours}</Text>
+        <View style={styles.summaryLeft}>
+          <Text style={styles.summaryText}>Total Hours: {totalHours.toFixed(2)}</Text>
+          {userData?.hourlyRate ? (
+            <>
+              {/* <Text style={styles.hourlyRateText}>Rate: ₸{userData.hourlyRate.toFixed(2)}/hr</Text> */}
+              <Text style={styles.earningsText}>Total: ₸{totalEarnings.toFixed(2)}</Text>
+            </>
+          ) : (
+            <Text style={styles.noRateText}>No hourly rate set</Text>
+          )}
+        </View>
         <TouchableOpacity 
           style={styles.addButton}
           onPress={navigateToNewEntry}
@@ -191,6 +207,7 @@ export default function TimesheetScreen({ navigation, route }: { navigation: any
           <Text style={[styles.headerCell, styles.dateCell]}>Date</Text>
           <Text style={[styles.headerCell, styles.taskCell]}>Task</Text>
           <Text style={[styles.headerCell, styles.hoursCell]}>Hours</Text>
+          {/* <Text style={[styles.headerCell, styles.rateCell]}>Rate</Text> */}
           <Text style={[styles.headerCell, styles.actionCell]}>Actions</Text>
         </View>
 
@@ -202,6 +219,7 @@ export default function TimesheetScreen({ navigation, route }: { navigation: any
               <SkeletonLoader width="90%" height={16} />
               <SkeletonLoader width="60%" height={16} />
               <SkeletonLoader width="70%" height={16} />
+              <SkeletonLoader width="70%" height={16} />
             </View>
           ))
         ) : (
@@ -210,6 +228,9 @@ export default function TimesheetScreen({ navigation, route }: { navigation: any
               <Text style={[styles.cell, styles.dateCell]}>{entry.date}</Text>
               <Text style={[styles.cell, styles.taskCell]}>{entry.task}</Text>
               <Text style={[styles.cell, styles.hoursCell]}>{entry.hours}</Text>
+              {/* <Text style={[styles.cell, styles.rateCell]}>
+                {userData?.hourlyRate ? `₸${userData.hourlyRate.toFixed(2)}` : '-'}
+              </Text> */}
               <View style={styles.actionCell}>
                 <TouchableOpacity 
                   style={styles.deleteButton}
@@ -285,10 +306,30 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
+  summaryLeft: {
+    flex: 1,
+    marginRight: 10,
+  },
   summaryText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
+  },
+  hourlyRateText: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 2,
+  },
+  earningsText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#34C759',
+    marginTop: 5,
+  },
+  noRateText: {
+    fontSize: 14,
+    color: '#888',
+    marginTop: 2,
   },
   addButton: {
     backgroundColor: '#34C759',
@@ -365,6 +406,10 @@ const styles = StyleSheet.create({
   },
   hoursCell: {
     flex: 0.5,
+    textAlign: 'center',
+  },
+  rateCell: {
+    flex: 0.8,
     textAlign: 'center',
   },
   actionCell: {
