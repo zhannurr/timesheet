@@ -40,6 +40,7 @@ export default function UserTimesheetScreen({ navigation, route }: UserTimesheet
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [projects, setProjects] = useState<{[key: string]: string}>({});
+  const [userHourlyRate, setUserHourlyRate] = useState<number>(0);
   const [deleteConfirmation, setDeleteConfirmation] = useState<{
     visible: boolean;
     entryId: string | null;
@@ -122,6 +123,24 @@ export default function UserTimesheetScreen({ navigation, route }: UserTimesheet
     fetchProjects();
   }, [fetchProjects]);
 
+  // Fetch user's hourly rate
+  const fetchUserHourlyRate = useCallback(async () => {
+    try {
+      const userRef = doc(db, 'users', userId);
+      const userSnapshot = await getDocs(query(collection(db, 'users'), where('__name__', '==', userId)));
+      if (!userSnapshot.empty) {
+        const userData = userSnapshot.docs[0].data();
+        setUserHourlyRate(userData.hourlyRate || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching user hourly rate:', error);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    fetchUserHourlyRate();
+  }, [fetchUserHourlyRate]);
+
   // Pull-to-refresh functionality
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -133,6 +152,12 @@ export default function UserTimesheetScreen({ navigation, route }: UserTimesheet
   const totalHours = useMemo(() => 
     timeEntries.reduce((sum, entry) => sum + parseFloat(entry.hours || '0'), 0), 
     [timeEntries]
+  );
+
+  // Memoize total amount calculation
+  const totalAmount = useMemo(() => 
+    totalHours * userHourlyRate, 
+    [totalHours, userHourlyRate]
   );
 
   const showDeleteConfirmation = (entryId: string, hours: string) => {
@@ -192,7 +217,10 @@ export default function UserTimesheetScreen({ navigation, route }: UserTimesheet
 
       <View style={[styles.summary, { backgroundColor: theme.surface, borderBottomColor: theme.divider }]}>
         <Text style={[styles.summaryText, { color: theme.text }]}>Total Hours: {totalHours.toFixed(2)}</Text>
+        <Text style={[styles.summaryText, { color: theme.text }]}>Total Amount: ₸{totalAmount.toFixed(2)}</Text>
       </View>
+
+      
 
       <ScrollView 
         style={styles.tableContainer}

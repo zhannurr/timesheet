@@ -89,7 +89,6 @@ function CustomDrawerContent(props: any) {
           style={[styles.logoutButton, { backgroundColor: theme.error + '10', borderColor: theme.error + '30' }]} 
           onPress={logout}
         >
-          <Text style={styles.logoutIcon}>🚪</Text>
           <Text style={[styles.logoutText, { color: theme.error }]}>Logout</Text>
         </TouchableOpacity>
       </View>
@@ -136,7 +135,7 @@ export default function MainDrawer() {
         options={{
           drawerLabel: 'Projects',
           drawerIcon: ({ color, size }) => (
-            <Text style={[styles.drawerIcon, { color, fontSize: size }]}>📁</Text>
+            <Text style={[styles.drawerIcon, { color, fontSize: size }]}></Text>
           ),
         }}
       />
@@ -146,7 +145,7 @@ export default function MainDrawer() {
         options={{
           drawerLabel: 'Timesheet',
           drawerIcon: ({ color, size }) => (
-            <Text style={[styles.drawerIcon, { color, fontSize: size }]}>📊</Text>
+            <Text style={[styles.drawerIcon, { color, fontSize: size }]}></Text>
           ),
           drawerItemStyle: { display: 'none' },
 
@@ -158,7 +157,7 @@ export default function MainDrawer() {
         options={{
           drawerLabel: 'New Entry',
           drawerIcon: ({ color, size }) => (
-            <Text style={[styles.drawerIcon, { color, fontSize: size }]}>➕</Text>
+            <Text style={[styles.drawerIcon, { color, fontSize: size }]}></Text>
           ),
           drawerItemStyle: { display: 'none' },
 
@@ -170,7 +169,7 @@ export default function MainDrawer() {
         options={{
           drawerLabel: 'User Management',
           drawerIcon: ({ color, size }) => (
-            <Text style={[styles.drawerIcon, { color, fontSize: size }]}>👥</Text>
+            <Text style={[styles.drawerIcon, { color, fontSize: size }]}></Text>
           ),
           drawerItemStyle: { display: 'none' },
 
@@ -182,9 +181,9 @@ export default function MainDrawer() {
         options={{
           drawerLabel: 'Users',
           drawerIcon: ({ color, size }) => (
-            <Text style={[styles.drawerIcon, { color, fontSize: size }]}>💰</Text>
+            <Text style={[styles.drawerIcon, { color, fontSize: size }]}></Text>
           ),
-          // Hide from drawer if not admin
+
           drawerItemStyle: isAdmin ? {} : { display: 'none' },
         }}
       />
@@ -194,7 +193,7 @@ export default function MainDrawer() {
         options={{
           drawerLabel: 'User Timesheet',
           drawerIcon: ({ color, size }) => (
-            <Text style={[styles.drawerIcon, { color, fontSize: size }]}>📊</Text>
+            <Text style={[styles.drawerIcon, { color, fontSize: size }]}></Text>
           ),
           drawerItemStyle: { display: 'none' },
         }}
@@ -205,7 +204,7 @@ export default function MainDrawer() {
         options={{
           drawerLabel: 'Profile',
           drawerIcon: ({ color, size }) => (
-            <Text style={[styles.drawerIcon, { color, fontSize: size }]}>👤</Text>
+            <Text style={[styles.drawerIcon, { color, fontSize: size }]}></Text>
           ),
         }}
       />
@@ -298,6 +297,8 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   logoutText: {
+    marginRight: "auto",
+    marginLeft: "auto",
     fontSize: 16,
     fontWeight: '600',
   },

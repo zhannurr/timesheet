@@ -210,7 +210,7 @@ export default function TimesheetScreen({ navigation, route }: { navigation: any
           {userData?.hourlyRate ? (
             <>
               {/* <Text style={styles.hourlyRateText}>Rate: ₸{userData.hourlyRate.toFixed(2)}/hr</Text> */}
-              <Text style={[styles.earningsText, { color: theme.success }]}>Total: ₸{totalEarnings.toFixed(2)}</Text>
+              {/* <Text style={[styles.earningsText, { color: theme.success }]}>Total: ₸{totalEarnings.toFixed(2)}</Text> */}
             </>
           ) : (
             <Text style={[styles.noRateText, { color: theme.textSecondary }]}>No hourly rate set</Text>
