@@ -9,6 +9,7 @@ import {
   Platform,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import Toast from '../components/Toast';
 
 interface LoginScreenProps {
@@ -29,6 +30,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
     type: 'info',
   });
   const { signIn } = useAuth();
+  const { theme } = useTheme();
 
   const showToast = (message: string, type: 'success' | 'error' | 'info') => {
     setToast({ visible: true, message, type });
@@ -57,7 +59,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
+      style={[styles.container, { backgroundColor: theme.background }]}
     >
       <Toast
         visible={toast.visible}
@@ -67,13 +69,21 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
       />
       
       <View style={styles.content}>
-        <Text style={styles.title}>Welcome Back</Text>
-        <Text style={styles.subtitle}>Sign in to your account</Text>
+        <Text style={[styles.title, { color: theme.text }]}>Welcome Back</Text>
+        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Sign in to your account</Text>
 
         <View style={styles.form}>
           <TextInput
-            style={styles.input}
+            style={[
+              styles.input,
+              {
+                backgroundColor: theme.inputBackground,
+                borderColor: theme.inputBorder,
+                color: theme.text,
+              },
+            ]}
             placeholder="Email"
+            placeholderTextColor={theme.inputPlaceholder}
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -82,8 +92,16 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
           />
 
           <TextInput
-            style={styles.input}
+            style={[
+              styles.input,
+              {
+                backgroundColor: theme.inputBackground,
+                borderColor: theme.inputBorder,
+                color: theme.text,
+              },
+            ]}
             placeholder="Password"
+            placeholderTextColor={theme.inputPlaceholder}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -92,7 +110,11 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
           />
 
           <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
+            style={[
+              styles.button,
+              { backgroundColor: theme.primary },
+              loading && { backgroundColor: theme.textTertiary },
+            ]}
             onPress={handleLogin}
             disabled={loading}
           >
@@ -105,7 +127,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
             style={styles.linkButton}
             onPress={() => navigation.navigate('Register')}
           >
-            <Text style={styles.linkText}>
+            <Text style={[styles.linkText, { color: theme.primary }]}>
               Don't have an account? Sign up
             </Text>
           </TouchableOpacity>
@@ -118,7 +140,6 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   content: {
     flex: 1,
@@ -128,13 +149,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#333',
     textAlign: 'center',
     marginBottom: 10,
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
     textAlign: 'center',
     marginBottom: 40,
   },
@@ -142,23 +161,17 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   input: {
-    backgroundColor: '#fff',
     borderRadius: 10,
     padding: 15,
     marginBottom: 15,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#ddd',
   },
   button: {
-    backgroundColor: '#007AFF',
     borderRadius: 10,
     padding: 15,
     alignItems: 'center',
     marginBottom: 20,
-  },
-  buttonDisabled: {
-    backgroundColor: '#ccc',
   },
   buttonText: {
     color: '#fff',
@@ -169,7 +182,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   linkText: {
-    color: '#007AFF',
     fontSize: 16,
   },
 });

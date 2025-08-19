@@ -10,6 +10,7 @@ import {
 import { collection, query, where, onSnapshot, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import DeleteConfirmation from '../components/DeleteConfirmation';
 import LoadingSpinner from '../components/LoadingSpinner';
 import SkeletonLoader from '../components/SkeletonLoader';
@@ -49,6 +50,7 @@ export default function UserTimesheetScreen({ navigation, route }: UserTimesheet
     hours: '',
   });
   const { userData } = useAuth();
+  const { theme } = useTheme();
   const { userId, userEmail } = route.params;
 
   // Memoize the query to prevent unnecessary re-renders
@@ -179,17 +181,17 @@ export default function UserTimesheetScreen({ navigation, route }: UserTimesheet
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={[styles.header, { backgroundColor: theme.surface, borderBottomColor: theme.divider }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('UserHourlyRates')}>
-          <Text style={styles.backButtonText}>←</Text>
+          <Text style={[styles.backButtonText, { color: theme.primary }]}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>{userEmail} Timesheet</Text>
+        <Text style={[styles.title, { color: theme.text }]}>{userEmail} Timesheet</Text>
         <View style={styles.headerSpacer} />
       </View>
 
-      <View style={styles.summary}>
-        <Text style={styles.summaryText}>Total Hours: {totalHours.toFixed(2)}</Text>
+      <View style={[styles.summary, { backgroundColor: theme.surface, borderBottomColor: theme.divider }]}>
+        <Text style={[styles.summaryText, { color: theme.text }]}>Total Hours: {totalHours.toFixed(2)}</Text>
       </View>
 
       <ScrollView 
@@ -199,18 +201,18 @@ export default function UserTimesheetScreen({ navigation, route }: UserTimesheet
         }
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.tableHeader}>
-          <Text style={[styles.headerCell, styles.dateCell]}>Date</Text>
-          <Text style={[styles.headerCell, styles.taskCell]}>Task</Text>
-          <Text style={[styles.headerCell, styles.hoursCell]}>Hours</Text>
-          <Text style={[styles.headerCell, styles.projectCell]}>Project</Text>
-          <Text style={[styles.headerCell, styles.actionCell]}>Actions</Text>
+        <View style={[styles.tableHeader, { backgroundColor: theme.surfaceVariant, borderBottomColor: theme.divider }]}>
+          <Text style={[styles.headerCell, styles.dateCell, { color: theme.text }]}>Date</Text>
+          <Text style={[styles.headerCell, styles.taskCell, { color: theme.text }]}>Task</Text>
+          <Text style={[styles.headerCell, styles.hoursCell, { color: theme.text }]}>Hours</Text>
+          <Text style={[styles.headerCell, styles.projectCell, { color: theme.text }]}>Project</Text>
+          <Text style={[styles.headerCell, styles.actionCell, { color: theme.text }]}>Actions</Text>
         </View>
 
         {loading && timeEntries.length === 0 ? (
           // Show skeleton loaders while loading
           Array.from({ length: 5 }).map((_, index) => (
-            <View key={index} style={styles.tableRow}>
+            <View key={index} style={[styles.tableRow, { backgroundColor: theme.surface, borderBottomColor: theme.divider }]}>
               <SkeletonLoader width="80%" height={16} />
               <SkeletonLoader width="90%" height={16} />
               <SkeletonLoader width="60%" height={16} />
@@ -220,11 +222,11 @@ export default function UserTimesheetScreen({ navigation, route }: UserTimesheet
           ))
         ) : (
           timeEntries.map((entry) => (
-            <View key={entry.id} style={styles.tableRow}>
-              <Text style={[styles.cell, styles.dateCell]}>{entry.date}</Text>
-              <Text style={[styles.cell, styles.taskCell]}>{entry.task}</Text>
-              <Text style={[styles.cell, styles.hoursCell]}>{entry.hours}</Text>
-              <Text style={[styles.cell, styles.projectCell]}>
+            <View key={entry.id} style={[styles.tableRow, { backgroundColor: theme.surface, borderBottomColor: theme.divider }]}>
+              <Text style={[styles.cell, styles.dateCell, { color: theme.text }]}>{entry.date}</Text>
+              <Text style={[styles.cell, styles.taskCell, { color: theme.text }]}>{entry.task}</Text>
+              <Text style={[styles.cell, styles.hoursCell, { color: theme.text }]}>{entry.hours}</Text>
+              <Text style={[styles.cell, styles.projectCell, { color: theme.text }]}>
                 {projects[entry.projectId] || 'Unknown Project'}
               </Text>
               <View style={styles.actionCell}>
@@ -232,7 +234,7 @@ export default function UserTimesheetScreen({ navigation, route }: UserTimesheet
                   style={styles.deleteButton}
                   onPress={() => showDeleteConfirmation(entry.id, entry.hours)}
                 >
-                  <Text style={styles.deleteButtonText}>Delete🗑️</Text>
+                  <Text style={[styles.deleteButtonText, { color: theme.error }]}>Delete🗑️</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -240,9 +242,9 @@ export default function UserTimesheetScreen({ navigation, route }: UserTimesheet
         )}
 
         {!loading && timeEntries.length === 0 && (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyStateText}>No time entries yet</Text>
-            <Text style={styles.emptyStateSubtext}>This user hasn't logged any time entries</Text>
+          <View style={[styles.emptyState, { backgroundColor: theme.surface, shadowColor: theme.shadow }]}>
+            <Text style={[styles.emptyStateText, { color: theme.textSecondary }]}>No time entries yet</Text>
+            <Text style={[styles.emptyStateSubtext, { color: theme.textTertiary }]}>This user hasn't logged any time entries</Text>
           </View>
         )}
       </ScrollView>
@@ -260,7 +262,6 @@ export default function UserTimesheetScreen({ navigation, route }: UserTimesheet
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   header: {
     flexDirection: 'row',
@@ -268,9 +269,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
-    backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
   },
   backButton: {
     padding: 10,
@@ -278,13 +277,11 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 24,
-    color: '#007AFF',
     fontWeight: 'bold',
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
     flex: 1,
   },
   headerSpacer: {
@@ -296,42 +293,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 15,
-    backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
   },
   summaryText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
   },
   tableContainer: {
     flex: 1,
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#f8f9fa',
     paddingVertical: 15,
     paddingHorizontal: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
   },
   headerCell: {
     fontWeight: 'bold',
     fontSize: 14,
-    color: '#333',
   },
   tableRow: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
     paddingVertical: 15,
     paddingHorizontal: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
   },
   cell: {   
     fontSize: 14,   
-    color: '#333',
   },
   dateCell: {
     flex: 1,
@@ -359,11 +347,9 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: 'center',
     paddingVertical: 50,
-    backgroundColor: '#fff',
     borderRadius: 10,
     marginHorizontal: 20,
     marginTop: 20,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -372,11 +358,9 @@ const styles = StyleSheet.create({
   emptyStateText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#555',
     marginBottom: 10,
   },
   emptyStateSubtext: {
     fontSize: 14,
-    color: '#888',
   },
 });

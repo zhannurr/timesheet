@@ -7,6 +7,7 @@ import {
   Dimensions,
   TouchableOpacity,
 } from 'react-native';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface ToastProps {
   visible: boolean;
@@ -25,6 +26,7 @@ export default function Toast({
   onHide, 
   duration = 3000 
 }: ToastProps) {
+  const { theme } = useTheme();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(-100)).current;
 
@@ -75,13 +77,13 @@ export default function Toast({
   const getBackgroundColor = () => {
     switch (type) {
       case 'success':
-        return '#34C759';
+        return theme.success;
       case 'error':
-        return '#FF3B30';
+        return theme.error;
       case 'info':
-        return '#007AFF';
+        return theme.info;
       default:
-        return '#007AFF';
+        return theme.info;
     }
   };
 
@@ -106,6 +108,7 @@ export default function Toast({
           backgroundColor: getBackgroundColor(),
           transform: [{ translateY: slideAnim }],
           opacity: fadeAnim,
+          shadowColor: theme.shadow,
         },
       ]}
     >
@@ -127,7 +130,6 @@ const styles = StyleSheet.create({
     left: 20,
     right: 20,
     borderRadius: 10,
-    shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 2,

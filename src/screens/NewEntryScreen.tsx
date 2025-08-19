@@ -12,6 +12,7 @@ import {
 import { collection, addDoc, updateDoc, doc, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface NewEntryScreenProps {
   navigation: any;
@@ -30,6 +31,7 @@ export default function NewEntryScreen({ navigation, route }: NewEntryScreenProp
   const [submitting, setSubmitting] = useState(false);
   
   const { user, userData } = useAuth();
+  const { theme } = useTheme();
   const { projectId, projectName } = route.params || {};
 
   useEffect(() => {
@@ -134,28 +136,36 @@ export default function NewEntryScreen({ navigation, route }: NewEntryScreenProp
   }, [validateHours]);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={[styles.header, { backgroundColor: theme.surface, borderBottomColor: theme.divider }]}>
         <TouchableOpacity 
           style={styles.backButton} 
           onPress={() => navigation.goBack()}
           disabled={submitting}
         >
-          <Text style={styles.backButtonText}>← Back</Text>
+          <Text style={[styles.backButtonText, { color: theme.primary }]}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>New Time Entry</Text>
+        <Text style={[styles.title, { color: theme.text }]}>New Time Entry</Text>
         <View style={styles.headerSpacer} />
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.formContainer}>
-          <Text style={styles.sectionTitle}>Entry Details</Text>
+        <View style={[styles.formContainer, { backgroundColor: theme.surface, shadowColor: theme.shadow }]}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Entry Details</Text>
           
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Date *</Text>
+            <Text style={[styles.label, { color: theme.text }]}>Date *</Text>
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: theme.inputBackground,
+                  borderColor: theme.inputBorder,
+                  color: theme.text,
+                },
+              ]}
               placeholder="YYYY-MM-DD"
+              placeholderTextColor={theme.inputPlaceholder}
               value={newEntry.date}
               onChangeText={(text) => setNewEntry({...newEntry, date: text})}
               editable={!submitting}
@@ -163,45 +173,68 @@ export default function NewEntryScreen({ navigation, route }: NewEntryScreenProp
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Project</Text>
+            <Text style={[styles.label, { color: theme.text }]}>Project</Text>
             <TextInput
-              style={[styles.input, styles.disabledInput]}
+              style={[
+                styles.input,
+                styles.disabledInput,
+                {
+                  backgroundColor: theme.surfaceVariant,
+                  color: theme.textSecondary,
+                },
+              ]}
               value={newEntry.projectName}
               editable={false}
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Hours *</Text>
+            <Text style={[styles.label, { color: theme.text }]}>Hours *</Text>
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: theme.inputBackground,
+                  borderColor: theme.inputBorder,
+                  color: theme.text,
+                },
+              ]}
               placeholder="0.0"
+              placeholderTextColor={theme.inputPlaceholder}
               value={newEntry.hours}
               onChangeText={handleHoursChange}
               keyboardType="numeric"
               editable={!submitting}
             />
             {userData?.hourlyRate ? (
-              <Text style={styles.rateInfo}>
+              <Text style={[styles.rateInfo, { color: theme.primary }]}>
                 Your hourly rate: ₸{userData.hourlyRate.toFixed(2)}/hr
               </Text>
             ) : (
-              <Text style={styles.noRateInfo}>
+              <Text style={[styles.noRateInfo, { color: theme.textSecondary }]}>
                 No hourly rate set. Contact admin to set your rate.
               </Text>
             )}
             {userData?.hourlyRate && newEntry.hours && parseFloat(newEntry.hours) > 0 && (
-              <Text style={styles.earningsPreview}>
+              <Text style={[styles.earningsPreview, { color: theme.text }]}>
                 Estimated earnings: ₸{(parseFloat(newEntry.hours) * userData.hourlyRate).toFixed(2)}
               </Text>
             )}
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Task *</Text>
+            <Text style={[styles.label, { color: theme.text }]}>Task *</Text>
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: theme.inputBackground,
+                  borderColor: theme.inputBorder,
+                  color: theme.text,
+                },
+              ]}
               placeholder="Enter task description"
+              placeholderTextColor={theme.inputPlaceholder}
               value={newEntry.task}
               onChangeText={(text) => setNewEntry({...newEntry, task: text})}
               multiline
@@ -213,7 +246,11 @@ export default function NewEntryScreen({ navigation, route }: NewEntryScreenProp
 
           <View style={styles.buttonContainer}>
             <TouchableOpacity 
-              style={[styles.resetButton, submitting && styles.disabledButton]} 
+              style={[
+                styles.resetButton, 
+                { backgroundColor: theme.secondary },
+                submitting && styles.disabledButton
+              ]} 
               onPress={resetForm}
               disabled={submitting}
             >
@@ -221,7 +258,11 @@ export default function NewEntryScreen({ navigation, route }: NewEntryScreenProp
             </TouchableOpacity>
             
             <TouchableOpacity 
-              style={[styles.saveButton, submitting && styles.disabledButton]} 
+              style={[
+                styles.saveButton, 
+                { backgroundColor: theme.success },
+                submitting && styles.disabledButton
+              ]} 
               onPress={addTimeEntry}
               disabled={submitting}
             >
@@ -244,7 +285,6 @@ export default function NewEntryScreen({ navigation, route }: NewEntryScreenProp
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   header: {
     flexDirection: 'row',
@@ -253,9 +293,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
-    backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
   },
   backButton: {
     padding: 10,
@@ -263,13 +301,11 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 16,
-    color: '#007AFF',
     fontWeight: '600',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
     flex: 1,
     textAlign: 'center',
   },
@@ -281,10 +317,8 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   formContainer: {
-    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 20,
-    shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 2,
@@ -296,7 +330,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
     marginBottom: 20,
     textAlign: 'center',
   },
@@ -306,20 +339,16 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
     marginBottom: 8,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    backgroundColor: '#fff',
   },
   disabledInput: {
-    backgroundColor: '#f8f9fa',
-    color: '#6c757d',
+    // backgroundColor and color will be set dynamically
   },
   buttonContainer: {
     flexDirection: 'row',
@@ -328,7 +357,6 @@ const styles = StyleSheet.create({
   },
   resetButton: {
     flex: 1,
-    backgroundColor: '#6c757d',
     padding: 15,
     borderRadius: 8,
     marginRight: 10,
@@ -341,7 +369,6 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     flex: 1,
-    backgroundColor: '#34C759',
     padding: 15,
     borderRadius: 8,
     marginLeft: 10,
@@ -362,19 +389,16 @@ const styles = StyleSheet.create({
   },
   rateInfo: {
     fontSize: 14,
-    color: '#007AFF',
     marginTop: 8,
     textAlign: 'right',
   },
   noRateInfo: {
     fontSize: 14,
-    color: '#6c757d',
     marginTop: 8,
     textAlign: 'right',
   },
   earningsPreview: {
     fontSize: 14,
-    color: '#333',
     marginTop: 8,
     textAlign: 'right',
   },

@@ -10,21 +10,24 @@ import {
   StatusBar,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
+import ThemeToggle from '../components/ThemeToggle';
 
 const { width } = Dimensions.get('window');
 
 export default function ProfileScreen({ navigation }: { navigation: any }) {
   const { userData, logout } = useAuth();
+  const { theme, isDark, toggleTheme } = useTheme();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [showThemeToggle, setShowThemeToggle] = useState(false);
 
   const handleLogout = async () => {
-            setIsLoggingOut(true);
-            try {
-              await logout();
-            } catch (error) {
-              console.error('Logout error:', error);
-            }
-  
+    setIsLoggingOut(true);
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   const getRoleDisplayName = (role: string) => {
@@ -48,19 +51,22 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar 
+        barStyle={isDark ? "light-content" : "dark-content"} 
+        backgroundColor={theme.surface} 
+      />
       
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: theme.surface, borderBottomColor: theme.divider }]}>
         <TouchableOpacity 
-          style={styles.menuButton} 
+          style={[styles.menuButton, { backgroundColor: theme.surfaceVariant }]} 
           onPress={() => navigation.openDrawer()}
           activeOpacity={0.7}
         >
-          <Text style={styles.menuIcon}>☰</Text>
+          <Text style={[styles.menuIcon, { color: theme.textSecondary }]}>☰</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Profile</Text>
+        <Text style={[styles.title, { color: theme.text }]}>Profile</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -70,7 +76,7 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
         contentContainerStyle={styles.scrollContent}
       >
         {/* Profile Card */}
-        <View style={styles.profileCard}>
+        <View style={[styles.profileCard, { backgroundColor: theme.surface, shadowColor: theme.shadow }]}>
           <View style={styles.avatarContainer}>
             <View style={[styles.avatar, { backgroundColor: getStatusColor(userData?.role || 'user') }]}>
               <Text style={styles.avatarText}>
@@ -82,7 +88,7 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
             </View>
           </View>
           
-          <Text style={styles.email}>{userData?.email || 'No email'}</Text>
+          <Text style={[styles.email, { color: theme.textSecondary }]}>{userData?.email || 'No email'}</Text>
           
           {/* Role Badge */}
           <View style={[styles.roleBadge, { backgroundColor: getStatusColor(userData?.role || 'user') }]}>
@@ -93,28 +99,50 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
         </View>
 
         {/* Stats Section */}
-        <View style={styles.statsSection}>
-          <Text style={styles.sectionTitle}>Account Information</Text>
+        <View style={[styles.statsSection, { backgroundColor: theme.surface, shadowColor: theme.shadow }]}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Account Information</Text>
           
           <View style={styles.statsGrid}>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Hourly Rate</Text>
-              <Text style={styles.statValue}>
+              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Hourly Rate</Text>
+              <Text style={[styles.statValue, { color: theme.text }]}>
                 {userData?.hourlyRate ? `₸${userData.hourlyRate.toFixed(2)}/hr` : 'Not set'}
               </Text>
             </View>
             
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Account Status</Text>
-              <Text style={styles.statValue}>Active</Text>
+              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Account Status</Text>
+              <Text style={[styles.statValue, { color: theme.text }]}>Active</Text>
             </View>
           </View>
         </View>
 
+        {/* Actions Section */}
+        <View style={[styles.actionsSection, { backgroundColor: theme.surface, shadowColor: theme.shadow }]}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Settings</Text>
+          
+          <TouchableOpacity 
+            style={[styles.actionButton, { backgroundColor: theme.surfaceVariant }]}
+            onPress={() => setShowThemeToggle(true)}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.actionIcon, { color: theme.primary }]}>
+              {isDark ? '🌙' : '☀️'}
+            </Text>
+            <Text style={[styles.actionText, { color: theme.text }]}>
+              {isDark ? 'Dark Mode' : 'Light Mode'}
+            </Text>
+            <Text style={[styles.actionArrow, { color: theme.textSecondary }]}>›</Text>
+          </TouchableOpacity>
+        </View>
 
         {/* Sign Out Button */}
         <TouchableOpacity 
-          style={[styles.signOutButton, isLoggingOut && styles.signOutButtonDisabled]} 
+          style={[
+            styles.signOutButton, 
+            { backgroundColor: theme.error },
+            isLoggingOut && { backgroundColor: theme.textTertiary }
+          ]} 
           onPress={handleLogout}
           disabled={isLoggingOut}
           activeOpacity={0.7}
@@ -125,6 +153,11 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
           </Text>
         </TouchableOpacity>
       </ScrollView>
+
+      <ThemeToggle 
+        visible={showThemeToggle} 
+        onClose={() => setShowThemeToggle(false)} 
+      />
     </View>
   );
 }
@@ -132,7 +165,6 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
   },
   header: {
     flexDirection: 'row',
@@ -141,9 +173,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
-    backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -153,18 +183,15 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#212529',
     flex: 1,
     textAlign: 'center',
   },
   menuButton: {
     padding: 12,
     borderRadius: 8,
-    backgroundColor: '#f8f9fa',
   },
   menuIcon: {
     fontSize: 20,
-    color: '#495057',
   },
   headerSpacer: {
     width: 44,
@@ -176,12 +203,10 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   profileCard: {
-    backgroundColor: '#fff',
     margin: 20,
     padding: 24,
     borderRadius: 16,
     alignItems: 'center',
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
@@ -226,7 +251,6 @@ const styles = StyleSheet.create({
   },
   email: {
     fontSize: 18,
-    color: '#6c757d',
     marginBottom: 16,
     fontWeight: '500',
   },
@@ -241,12 +265,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   statsSection: {
-    backgroundColor: '#fff',
     margin: 20,
     marginTop: 0,
     padding: 20,
     borderRadius: 16,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
@@ -255,7 +277,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#212529',
     marginBottom: 16,
   },
   statsGrid: {
@@ -269,21 +290,17 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 14,
-    color: '#6c757d',
     marginBottom: 4,
   },
   statValue: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#212529',
   },
   actionsSection: {
-    backgroundColor: '#fff',
     margin: 20,
     marginTop: 0,
     padding: 20,
     borderRadius: 16,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
@@ -295,7 +312,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 16,
     borderRadius: 12,
-    backgroundColor: '#f8f9fa',
     marginBottom: 12,
   },
   actionIcon: {
@@ -306,15 +322,12 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontWeight: '500',
-    color: '#212529',
   },
   actionArrow: {
     fontSize: 18,
-    color: '#6c757d',
     fontWeight: '300',
   },
   signOutButton: {
-    backgroundColor: '#dc3545',
     margin: 20,
     marginTop: 0,
     paddingVertical: 16,
@@ -323,14 +336,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#dc3545',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
   },
   signOutButtonDisabled: {
-    backgroundColor: '#6c757d',
     opacity: 0.7,
   },
   signOutIcon: {

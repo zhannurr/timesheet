@@ -11,6 +11,7 @@ import {
 import { collection, onSnapshot, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface User {
   uid: string;
@@ -24,12 +25,13 @@ export default function UserHourlyRatesScreen({ navigation }: { navigation: any 
   const [editingUser, setEditingUser] = useState<string | null>(null);
   const [editingRate, setEditingRate] = useState<string>('');
   const { userData } = useAuth();
+  const { theme } = useTheme();
 
   // Check if current user is admin
   if (userData?.role !== 'admin') {
     return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>Access denied. Admin privileges required.</Text>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <Text style={[styles.errorText, { color: theme.error }]}>Access denied. Admin privileges required.</Text>
       </View>
     );
   }
@@ -82,23 +84,23 @@ export default function UserHourlyRatesScreen({ navigation }: { navigation: any 
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={[styles.header, { backgroundColor: theme.surface, borderBottomColor: theme.divider }]}>
         <TouchableOpacity style={styles.menuButton} onPress={() => navigation.openDrawer()}>
-          <Text style={styles.menuIcon}>☰</Text>
+          <Text style={[styles.menuIcon, { color: theme.text }]}>☰</Text>
         </TouchableOpacity>
         
-        <Text style={styles.title}>Users</Text>
+        <Text style={[styles.title, { color: theme.text }]}>Users</Text>
         <View style={styles.headerSpacer} />
       </View>
 
-      <View style={styles.infoSection}>
-        <Text style={styles.infoText}>Set hourly rates for each user in tenge (₸)</Text>
+      <View style={[styles.infoSection, { backgroundColor: theme.surface, borderBottomColor: theme.divider }]}>
+        <Text style={[styles.infoText, { color: theme.textSecondary }]}>Set hourly rates for each user in tenge (₸)</Text>
       </View>
 
       <ScrollView style={styles.usersList}>
         {users.map((user) => (
-          <View key={user.uid} style={styles.userItem}>
+          <View key={user.uid} style={[styles.userItem, { backgroundColor: theme.surface, shadowColor: theme.shadow }]}>
             <View style={styles.userInfo}>
               <TouchableOpacity 
                 style={styles.userInfoTouchable}
@@ -107,10 +109,10 @@ export default function UserHourlyRatesScreen({ navigation }: { navigation: any 
                   userEmail: user.email 
                 })}
               >
-                <Text style={styles.userEmail}>{user.email}</Text>
+                <Text style={[styles.userEmail, { color: theme.text }]}>{user.email}</Text>
                 <View style={styles.userMeta}>
-                  <Text style={styles.userRole}>{user.role}</Text>
-                  <Text style={styles.currentRate}>
+                  <Text style={[styles.userRole, { backgroundColor: theme.surfaceVariant, color: theme.textSecondary }]}>{user.role}</Text>
+                  <Text style={[styles.currentRate, { color: theme.primary }]}>
                     Current: ₸{user.hourlyRate || 0}/hr
                   </Text>
                 </View>
@@ -120,22 +122,30 @@ export default function UserHourlyRatesScreen({ navigation }: { navigation: any 
             {editingUser === user.uid ? (
               <View style={styles.editSection}>
                 <TextInput
-                  style={styles.rateInput}
+                  style={[
+                    styles.rateInput,
+                    {
+                      backgroundColor: theme.inputBackground,
+                      borderColor: theme.inputBorder,
+                      color: theme.text,
+                    },
+                  ]}
                   value={editingRate}
                   onChangeText={setEditingRate}
                   placeholder="0"
+                  placeholderTextColor={theme.inputPlaceholder}
                   keyboardType="numeric"
                   autoFocus
                 />
                 <View style={styles.editButtons}>
                   <TouchableOpacity
-                    style={styles.saveButton}
+                    style={[styles.saveButton, { backgroundColor: theme.success }]}
                     onPress={() => saveHourlyRate(user.uid)}
                   >
                     <Text style={styles.saveButtonText}>✓</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={styles.cancelButton}
+                    style={[styles.cancelButton, { backgroundColor: theme.error }]}
                     onPress={cancelEditing}
                   >
                     <Text style={styles.cancelButtonText}>✕</Text>
@@ -144,7 +154,7 @@ export default function UserHourlyRatesScreen({ navigation }: { navigation: any 
               </View>
             ) : (
               <TouchableOpacity
-                style={styles.editButton}
+                style={[styles.editButton, { backgroundColor: theme.primary }]}
                 onPress={() => startEditing(user)}
               >
                 <Text style={styles.editButtonText}>Edit</Text>
@@ -160,7 +170,6 @@ export default function UserHourlyRatesScreen({ navigation }: { navigation: any 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   header: {
     flexDirection: 'row',
@@ -168,9 +177,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
-    backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
   },
   menuButton: {
     padding: 10,
@@ -178,26 +185,21 @@ const styles = StyleSheet.create({
   },
   menuIcon: {
     fontSize: 24,
-    color: '#333',
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
     flex: 1,
   },
   headerSpacer: {
     width: 44,
   },
   infoSection: {
-    backgroundColor: '#fff',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
   },
   infoText: {
     fontSize: 14,
-    color: '#666',
     textAlign: 'center',
   },
   usersList: {
@@ -208,11 +210,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#fff',
     padding: 20,
     marginBottom: 15,
     borderRadius: 12,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -223,7 +223,6 @@ const styles = StyleSheet.create({
   },
   userEmail: {
     fontSize: 16,
-    color: '#333',
     fontWeight: '600',
     marginBottom: 5,
   },
@@ -234,19 +233,15 @@ const styles = StyleSheet.create({
   },
   userRole: {
     fontSize: 14,
-    color: '#666',
-    backgroundColor: '#f0f0f0',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
   },
   currentRate: {
     fontSize: 14,
-    color: '#007AFF',
     fontWeight: '600',
   },
   editButton: {
-    backgroundColor: '#007AFF',
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
@@ -263,7 +258,6 @@ const styles = StyleSheet.create({
   },
   rateInput: {
     borderWidth: 1,
-    borderColor: '#ddd',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -276,7 +270,6 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   saveButton: {
-    backgroundColor: '#34C759',
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -289,7 +282,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   cancelButton: {
-    backgroundColor: '#FF3B30',
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -303,7 +295,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 18,
-    color: '#FF3B30',
     textAlign: 'center',
     marginTop: 100,
     paddingHorizontal: 20,

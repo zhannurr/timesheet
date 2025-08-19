@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Modal,
 } from 'react-native';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface DeleteConfirmationProps {
   visible: boolean;
@@ -22,6 +23,8 @@ export default function DeleteConfirmation({
   onConfirm,
   onCancel,
 }: DeleteConfirmationProps) {
+  const { theme } = useTheme();
+
   return (
     <Modal
       visible={visible}
@@ -29,16 +32,22 @@ export default function DeleteConfirmation({
       animationType="fade"
       onRequestClose={onCancel}
     >
-      <View style={styles.overlay}>
-        <View style={styles.modal}>
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.message}>{message}</Text>
+      <View style={[styles.overlay, { backgroundColor: theme.overlay }]}>
+        <View style={[styles.modal, { backgroundColor: theme.modal, shadowColor: theme.shadow }]}>
+          <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
+          <Text style={[styles.message, { color: theme.textSecondary }]}>{message}</Text>
           
           <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+            <TouchableOpacity 
+              style={[styles.cancelButton, { backgroundColor: theme.surfaceVariant }]} 
+              onPress={onCancel}
+            >
+              <Text style={[styles.cancelButtonText, { color: theme.textSecondary }]}>Cancel</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.deleteButton} onPress={onConfirm}>
+            <TouchableOpacity 
+              style={[styles.deleteButton, { backgroundColor: theme.error }]} 
+              onPress={onConfirm}
+            >
               <Text style={styles.deleteButtonText}>Delete</Text>
             </TouchableOpacity>
           </View>
@@ -51,17 +60,14 @@ export default function DeleteConfirmation({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   modal: {
-    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 24,
     margin: 20,
     minWidth: 300,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
@@ -70,13 +76,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
     marginBottom: 12,
     textAlign: 'center',
   },
   message: {
     fontSize: 16,
-    color: '#666',
     marginBottom: 24,
     textAlign: 'center',
     lineHeight: 22,
@@ -88,20 +92,17 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     flex: 1,
-    backgroundColor: '#f0f0f0',
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 8,
     alignItems: 'center',
   },
   cancelButtonText: {
-    color: '#666',
     fontSize: 16,
     fontWeight: '600',
   },
   deleteButton: {
     flex: 1,
-    backgroundColor: '#FF3B30',
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 8,

@@ -9,6 +9,7 @@ import {
 import { collection, onSnapshot, updateDoc, doc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface User {
   uid: string;
@@ -26,6 +27,7 @@ export default function UserManagementScreen({ navigation, route }: { navigation
   const [users, setUsers] = useState<User[]>([]);
   const [project, setProject] = useState<Project | null>(null);
   const { userData } = useAuth();
+  const { theme } = useTheme();
   const { projectId, projectName } = route.params || {};
 
   useEffect(() => {
@@ -81,31 +83,31 @@ export default function UserManagementScreen({ navigation, route }: { navigation
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={[styles.header, { backgroundColor: theme.surface, borderBottomColor: theme.divider }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>←</Text>
+          <Text style={[styles.backButtonText, { color: theme.primary }]}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Manage Users</Text>
+        <Text style={[styles.title, { color: theme.text }]}>Manage Users</Text>
         <View style={styles.headerSpacer} />
       </View>
 
-      <View style={styles.projectInfo}>
-        <Text style={styles.projectName}>{projectName}</Text>
-        <Text style={styles.projectSubtitle}>Add or remove users from this project</Text>
+      <View style={[styles.projectInfo, { backgroundColor: theme.surface, borderBottomColor: theme.divider }]}>
+        <Text style={[styles.projectName, { color: theme.text }]}>{projectName}</Text>
+        <Text style={[styles.projectSubtitle, { color: theme.textSecondary }]}>Add or remove users from this project</Text>
       </View>
 
       <ScrollView style={styles.usersList}>
         {users.map((userItem) => {
           const assigned = isUserAssigned(userItem.uid);
           return (
-            <View key={userItem.uid} style={styles.userItem}>
+            <View key={userItem.uid} style={[styles.userItem, { backgroundColor: theme.surface, shadowColor: theme.shadow }]}>
               <View style={styles.userInfo}>
-                <Text style={styles.userEmail}>{userItem.email}</Text>
+                <Text style={[styles.userEmail, { color: theme.text }]}>{userItem.email}</Text>
                 <View style={styles.userMeta}>
-                  <Text style={styles.userRole}>{userItem.role}</Text>
+                  <Text style={[styles.userRole, { backgroundColor: theme.surfaceVariant, color: theme.textSecondary }]}>{userItem.role}</Text>
                   {assigned && (
-                    <View style={styles.assignedBadge}>
+                    <View style={[styles.assignedBadge, { backgroundColor: theme.success }]}>
                       <Text style={styles.assignedBadgeText}>Assigned</Text>
                     </View>
                   )}
@@ -115,7 +117,8 @@ export default function UserManagementScreen({ navigation, route }: { navigation
               <TouchableOpacity
                 style={[
                   styles.toggleButton,
-                  assigned ? styles.removeButton : styles.addButton
+                  { shadowColor: theme.shadow },
+                  assigned ? [styles.removeButton, { backgroundColor: theme.error }] : [styles.addButton, { backgroundColor: theme.success }]
                 ]}
                 onPress={() => toggleUserAssignment(userItem.uid)}
               >
@@ -134,7 +137,6 @@ export default function UserManagementScreen({ navigation, route }: { navigation
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   header: {
     flexDirection: 'row',
@@ -142,9 +144,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
-    backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
   },
   backButton: {
     padding: 10,
@@ -152,33 +152,27 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 24,
-    color: '#007AFF',
     fontWeight: 'bold',
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
     flex: 1,
   },
   headerSpacer: {
     width: 44,
   },
   projectInfo: {
-    backgroundColor: '#fff',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
   },
   projectName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
     marginBottom: 5,
   },
   projectSubtitle: {
     fontSize: 14,
-    color: '#666',
   },
   usersList: {
     flex: 1,
@@ -188,11 +182,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#fff',
     padding: 20,
     marginBottom: 15,
     borderRadius: 12,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -203,7 +195,6 @@ const styles = StyleSheet.create({
   },
   userEmail: {
     fontSize: 16,
-    color: '#333',
     fontWeight: '600',
     marginBottom: 5,
   },
@@ -214,14 +205,11 @@ const styles = StyleSheet.create({
   },
   userRole: {
     fontSize: 14,
-    color: '#666',
-    backgroundColor: '#f0f0f0',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
   },
   assignedBadge: {
-    backgroundColor: '#34C759',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -237,17 +225,16 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 3,
   },
   addButton: {
-    backgroundColor: '#34C759',
+    // backgroundColor will be set dynamically
   },
   removeButton: {
-    backgroundColor: '#FF3B30',
+    // backgroundColor will be set dynamically
   },
   toggleButtonText: {
     color: '#fff',

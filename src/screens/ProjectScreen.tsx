@@ -12,6 +12,7 @@ import {
 import { collection, addDoc, deleteDoc, doc, getDocs, query, where, onSnapshot, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import DeleteConfirmation from '../components/DeleteConfirmation';
 import LoadingSpinner from '../components/LoadingSpinner';
 import SkeletonLoader from '../components/SkeletonLoader';
@@ -47,6 +48,7 @@ export default function ProjectScreen({ navigation }: { navigation: any }) {
   });
   
   const { user, userData } = useAuth();
+  const { theme } = useTheme();
   const isAdmin = userData?.role === 'admin';
 
   // Memoize queries to prevent unnecessary re-renders
@@ -203,23 +205,23 @@ export default function ProjectScreen({ navigation }: { navigation: any }) {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={[styles.header, { backgroundColor: theme.surface, borderBottomColor: theme.divider }]}>
         <TouchableOpacity style={styles.menuButton} onPress={() => navigation.openDrawer()}>
-          <Text style={styles.menuIcon}>☰</Text>
+          <Text style={[styles.menuIcon, { color: theme.text }]}>☰</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Projects</Text>
+        <Text style={[styles.title, { color: theme.text }]}>Projects</Text>
         <View style={styles.headerSpacer} />
       </View>
 
-      <View style={styles.summary}>
+      <View style={[styles.summary, { backgroundColor: theme.surface, borderBottomColor: theme.divider }]}>
         <View style={styles.summaryItem}>
-          <Text style={styles.summaryLabel}>Projects</Text>
-          <Text style={styles.summaryValue}>{totalProjects}</Text>
+          <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Projects</Text>
+          <Text style={[styles.summaryValue, { color: theme.text }]}>{totalProjects}</Text>
         </View>
         {isAdmin && (
           <TouchableOpacity 
-            style={styles.addButton}
+            style={[styles.addButton, { backgroundColor: theme.success }]}
             onPress={() => setShowAddForm(!showAddForm)}
           >
             <Text style={styles.addButtonText}>
@@ -230,15 +232,23 @@ export default function ProjectScreen({ navigation }: { navigation: any }) {
       </View>
 
       {showAddForm && isAdmin && (
-        <View style={styles.addForm}>
+        <View style={[styles.addForm, { backgroundColor: theme.surface, borderBottomColor: theme.divider }]}>
           <TextInput
-            style={styles.input}
+            style={[
+              styles.input,
+              {
+                backgroundColor: theme.inputBackground,
+                borderColor: theme.inputBorder,
+                color: theme.text,
+              },
+            ]}
             placeholder="Project Name"
+            placeholderTextColor={theme.inputPlaceholder}
             value={newProject.name}
             onChangeText={(text) => setNewProject({...newProject, name: text})}
           />
           
-          <TouchableOpacity style={styles.saveButton} onPress={addProject}>
+          <TouchableOpacity style={[styles.saveButton, { backgroundColor: theme.primary }]} onPress={addProject}>
             <Text style={styles.saveButtonText}>Create Project</Text>
           </TouchableOpacity>
         </View>
@@ -254,7 +264,7 @@ export default function ProjectScreen({ navigation }: { navigation: any }) {
         {loading && projects.length === 0 ? (
           // Show skeleton loaders while loading
           Array.from({ length: 3 }).map((_, index) => (
-            <View key={index} style={styles.projectCard}>
+            <View key={index} style={[styles.projectCard, { backgroundColor: theme.surface, shadowColor: theme.shadow }]}>
               <SkeletonLoader width="70%" height={20} style={{ marginBottom: 10 }} />
               <SkeletonLoader width="40%" height={16} />
             </View>
@@ -263,15 +273,15 @@ export default function ProjectScreen({ navigation }: { navigation: any }) {
           projects.map((project) => (
             <TouchableOpacity
               key={project.id}
-              style={styles.projectCard}
+              style={[styles.projectCard, { backgroundColor: theme.surface, shadowColor: theme.shadow }]}
               onPress={() => openProjectTimesheet(project)}
             >
               <View style={styles.projectHeader}>
-                <Text style={styles.projectName}>{project.name}</Text>
+                <Text style={[styles.projectName, { color: theme.text }]}>{project.name}</Text>
                 <View style={styles.projectActions}>
                   {isAdmin && (
                     <TouchableOpacity 
-                      style={styles.manageUsersButton}
+                      style={[styles.manageUsersButton, { backgroundColor: theme.primary }]}
                       onPress={() => openUserManagement(project)}
                     >
                       <Text style={styles.manageUsersButtonText}>Users Manage</Text>
@@ -282,7 +292,7 @@ export default function ProjectScreen({ navigation }: { navigation: any }) {
                       style={styles.deleteButton}
                       onPress={() => showDeleteConfirmation(project.id)}
                     >
-                      <Text style={styles.deleteButtonText}>Delete</Text>
+                      <Text style={[styles.deleteButtonText, { backgroundColor: theme.error }]}>Delete</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -293,8 +303,8 @@ export default function ProjectScreen({ navigation }: { navigation: any }) {
 
         {!loading && projects.length === 0 && (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyStateText}>No projects yet</Text>
-            <Text style={styles.emptyStateSubtext}>
+            <Text style={[styles.emptyStateText, { color: theme.textSecondary }]}>No projects yet</Text>
+            <Text style={[styles.emptyStateSubtext, { color: theme.textTertiary }]}>
               {isAdmin ? 'Create your first project to get started' : 'You will see projects here once assigned'}
             </Text>
           </View>
@@ -315,7 +325,6 @@ export default function ProjectScreen({ navigation }: { navigation: any }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   header: {
     flexDirection: 'row',
@@ -324,14 +333,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
-    backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
     flex: 1,
     textAlign: 'center',
   },
@@ -341,7 +347,6 @@ const styles = StyleSheet.create({
   },
   menuIcon: {
     fontSize: 24,
-    color: '#333',
   },
   headerSpacer: {
     width: 44, // Same width as menuButton for balance
@@ -352,25 +357,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 15,
-    backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
   },
   summaryItem: {
     alignItems: 'center',
   },
   summaryLabel: {
     fontSize: 12,
-    color: '#666',
     marginBottom: 4,
   },
   summaryValue: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
   },
   addButton: {
-    backgroundColor: '#34C759',
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
@@ -381,21 +381,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   addForm: {
-    backgroundColor: '#fff',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
     borderRadius: 8,
     padding: 12,
     marginBottom: 10,
     fontSize: 16,
   },
   saveButton: {
-    backgroundColor: '#007AFF',
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
@@ -410,11 +406,9 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   projectCard: {
-    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 20,
     marginBottom: 15,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -429,7 +423,6 @@ const styles = StyleSheet.create({
   projectName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
     flex: 1,
   },
   projectActions: {
@@ -439,7 +432,6 @@ const styles = StyleSheet.create({
   },
   manageUsersButton: {
     padding: 8,
-    backgroundColor: '#007AFF',
     borderRadius: 6,
   },
   manageUsersButtonText: {
@@ -451,7 +443,6 @@ const styles = StyleSheet.create({
     padding: 5,
   },
   deleteButtonText: {
-    backgroundColor: '#FF3B30',
     borderRadius: 10,
     fontSize: 16,
     color: "white",
@@ -466,11 +457,9 @@ const styles = StyleSheet.create({
   hoursText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#007AFF',
   },
   tapText: {
     fontSize: 12,
-    color: '#999',
     fontStyle: 'italic',
   },
   modalOverlay: {
@@ -480,11 +469,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#fff',
     borderRadius: 12,
     width: '90%',
     maxHeight: '80%',
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
@@ -496,12 +483,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
     flex: 1,
   },
   closeButton: {
@@ -509,7 +494,6 @@ const styles = StyleSheet.create({
   },
   closeButtonText: {
     fontSize: 20,
-    color: '#666',
   },
   usersList: {
     padding: 20,
@@ -520,19 +504,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   userInfo: {
     flex: 1,
   },
   userEmail: {
     fontSize: 16,
-    color: '#333',
     fontWeight: '500',
   },
   userRole: {
     fontSize: 14,
-    color: '#666',
     marginTop: 2,
   },
   userActionButton: {
@@ -560,12 +541,10 @@ const styles = StyleSheet.create({
   emptyStateText: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#555',
     marginBottom: 10,
   },
   emptyStateSubtext: {
     fontSize: 16,
-    color: '#888',
     textAlign: 'center',
     paddingHorizontal: 20,
   },

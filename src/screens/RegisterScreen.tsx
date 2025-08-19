@@ -9,6 +9,7 @@ import {
   Platform,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import Toast from '../components/Toast';
 
 interface RegisterScreenProps {
@@ -30,6 +31,7 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
     type: 'info',
   });
   const { signUp } = useAuth();
+  const { theme } = useTheme();
 
   const showToast = (message: string, type: 'success' | 'error' | 'info') => {
     setToast({ visible: true, message, type });
@@ -73,7 +75,7 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
+      style={[styles.container, { backgroundColor: theme.background }]}
     >
       <Toast
         visible={toast.visible}
@@ -83,13 +85,21 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
       />
       
       <View style={styles.content}>
-        <Text style={styles.title}>Create Account</Text>
-        <Text style={styles.subtitle}>Sign up to get started</Text>
+        <Text style={[styles.title, { color: theme.text }]}>Create Account</Text>
+        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Sign up to get started</Text>
 
         <View style={styles.form}>
           <TextInput
-            style={styles.input}
+            style={[
+              styles.input,
+              {
+                backgroundColor: theme.inputBackground,
+                borderColor: theme.inputBorder,
+                color: theme.text,
+              },
+            ]}
             placeholder="Email"
+            placeholderTextColor={theme.inputPlaceholder}
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -98,8 +108,16 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
           />
 
           <TextInput
-            style={styles.input}
+            style={[
+              styles.input,
+              {
+                backgroundColor: theme.inputBackground,
+                borderColor: theme.inputBorder,
+                color: theme.text,
+              },
+            ]}
             placeholder="Password"
+            placeholderTextColor={theme.inputPlaceholder}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -108,8 +126,16 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
           />
 
           <TextInput
-            style={styles.input}
+            style={[
+              styles.input,
+              {
+                backgroundColor: theme.inputBackground,
+                borderColor: theme.inputBorder,
+                color: theme.text,
+              },
+            ]}
             placeholder="Confirm Password"
+            placeholderTextColor={theme.inputPlaceholder}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             secureTextEntry
@@ -118,7 +144,11 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
           />
 
           <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
+            style={[
+              styles.button,
+              { backgroundColor: theme.primary },
+              loading && { backgroundColor: theme.textTertiary },
+            ]}
             onPress={handleRegister}
             disabled={loading}
           >
@@ -131,7 +161,7 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
             style={styles.linkButton}
             onPress={() => navigation.navigate('Login')}
           >
-            <Text style={styles.linkText}>
+            <Text style={[styles.linkText, { color: theme.primary }]}>
               Already have an account? Sign in
             </Text>
           </TouchableOpacity>
@@ -144,7 +174,6 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   content: {
     flex: 1,
@@ -154,13 +183,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#333',
     textAlign: 'center',
     marginBottom: 10,
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
     textAlign: 'center',
     marginBottom: 40,
   },
@@ -168,23 +195,17 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   input: {
-    backgroundColor: '#fff',
     borderRadius: 10,
     padding: 15,
     marginBottom: 15,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#ddd',
   },
   button: {
-    backgroundColor: '#34C759',
     borderRadius: 10,
     padding: 15,
     alignItems: 'center',
     marginBottom: 20,
-  },
-  buttonDisabled: {
-    backgroundColor: '#ccc',
   },
   buttonText: {
     color: '#fff',
@@ -195,7 +216,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   linkText: {
-    color: '#007AFF',
     fontSize: 16,
   },
 });
