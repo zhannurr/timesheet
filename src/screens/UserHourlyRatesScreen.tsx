@@ -57,7 +57,7 @@ export default function UserHourlyRatesScreen({ navigation }: { navigation: any 
     const rate = parseFloat(editingRate);
     
     if (isNaN(rate) || rate < 0) {
-      Alert.alert('Invalid Rate', 'Please enter a valid positive number for hourly rate.');
+      alert('Please enter a valid positive number for hourly rate.');
       return;
     }
 
@@ -69,10 +69,10 @@ export default function UserHourlyRatesScreen({ navigation }: { navigation: any 
       
       setEditingUser(null);
       setEditingRate('');
-      Alert.alert('Success', 'Hourly rate updated successfully.');
+      alert('Hourly rate updated successfully.');
     } catch (error) {
       console.error('Failed to update hourly rate:', error);
-      Alert.alert('Error', 'Failed to update hourly rate. Please try again.');
+      alert('Failed to update hourly rate. Please try again.');
     }
   };
 
@@ -84,10 +84,11 @@ export default function UserHourlyRatesScreen({ navigation }: { navigation: any 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>←</Text>
+        <TouchableOpacity style={styles.menuButton} onPress={() => navigation.openDrawer()}>
+          <Text style={styles.menuIcon}>☰</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>User Hourly Rates</Text>
+        
+        <Text style={styles.title}>Users</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -171,14 +172,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
-  backButton: {
+  menuButton: {
     padding: 10,
     marginRight: 10,
   },
-  backButtonText: {
+  menuIcon: {
     fontSize: 24,
-    color: '#007AFF',
-    fontWeight: 'bold',
+    color: '#333',
   },
   title: {
     fontSize: 20,

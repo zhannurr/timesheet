@@ -40,17 +40,17 @@ export default function NewEntryScreen({ navigation, route }: NewEntryScreenProp
 
   const addTimeEntry = useCallback(async () => {
     if (!newEntry.date || !newEntry.task || !newEntry.hours) {
-      Alert.alert('Validation Error', 'Please fill in all required fields (Date, Task, and Hours)');
+      alert('Please fill in all required fields (Date, Task, and Hours');
       return;
     }
 
     if (parseFloat(newEntry.hours) <= 0) {
-      Alert.alert('Validation Error', 'Hours must be greater than 0');
+      alert('Hours must be greater than 0');
       return;
     }
 
     if (parseFloat(newEntry.hours) > 24) {
-      Alert.alert('Validation Error', 'Hours cannot exceed 24 in a single day');
+      alert('Hours cannot exceed 24 in a single day');
       return;
     }
 
@@ -97,9 +97,9 @@ export default function NewEntryScreen({ navigation, route }: NewEntryScreenProp
     } catch (error) {
       console.error('Failed to add time entry:', error);
       if (error instanceof Error && error.message.includes('timeout')) {
-        Alert.alert('Timeout Error', 'The operation is taking longer than expected. Please check your connection and try again.');
+        alert('The operation is taking longer than expected. Please check your connection and try again.');
       } else {
-        Alert.alert('Error', 'Failed to add time entry. Please try again.');
+        alert('Failed to add time entry. Please try again.');
       }
     } finally {
       setSubmitting(false);
@@ -122,7 +122,7 @@ export default function NewEntryScreen({ navigation, route }: NewEntryScreenProp
       return false;
     }
     if (hours > 24) {
-      Alert.alert('Warning', 'Hours exceed 24. Please verify this is correct.');
+      alert('Hours exceed 24. Please verify this is correct.');
     }
     return true;
   }, []);

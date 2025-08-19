@@ -193,8 +193,8 @@ export default function TimesheetScreen({ navigation, route }: { navigation: any
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.menuButton} onPress={() => navigation.openDrawer()}>
-          <Text style={styles.menuIcon}>☰</Text>
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('Projects')}>
+          <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
         <Text style={styles.title}>
           {projectName ? `${projectName} Timesheet` : 'Timesheet'}
@@ -298,6 +298,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  backButton: {
+    padding: 10,
+    marginRight: 10,
+  },
+  backButtonText: {
+    fontSize: 24,
+    color: '#007AFF',
+    fontWeight: 'bold',
   },
   header: {
     flexDirection: 'row',
