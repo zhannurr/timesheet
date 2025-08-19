@@ -7,9 +7,10 @@ import {
   TouchableOpacity,
   RefreshControl,
 } from 'react-native';
-import { collection, query, where, onSnapshot, getDocs } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { useAuth } from '../contexts/AuthContext';
+import DeleteConfirmation from '../components/DeleteConfirmation';
 import LoadingSpinner from '../components/LoadingSpinner';
 import SkeletonLoader from '../components/SkeletonLoader';
 
@@ -38,6 +39,15 @@ export default function UserTimesheetScreen({ navigation, route }: UserTimesheet
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [projects, setProjects] = useState<{[key: string]: string}>({});
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
+    visible: boolean;
+    entryId: string | null;
+    hours: string;
+  }>({
+    visible: false,
+    entryId: null,
+    hours: '',
+  });
   const { userData } = useAuth();
   const { userId, userEmail } = route.params;
 
@@ -123,6 +133,46 @@ export default function UserTimesheetScreen({ navigation, route }: UserTimesheet
     [timeEntries]
   );
 
+  const showDeleteConfirmation = (entryId: string, hours: string) => {
+    setDeleteConfirmation({
+      visible: true,
+      entryId,
+      hours,
+    });
+  };
+
+  const hideDeleteConfirmation = () => {
+    setDeleteConfirmation({
+      visible: false,
+      entryId: null,
+      hours: '',
+    });
+  };
+
+  const confirmDeleteTimeEntry = async () => {
+    if (deleteConfirmation.entryId) {
+      try {
+        await deleteDoc(doc(db, 'tasks', deleteConfirmation.entryId));
+        
+        // Update project total hours
+        const entryToDelete = timeEntries.find(entry => entry.id === deleteConfirmation.entryId);
+        if (entryToDelete?.projectId) {
+          const projectRef = doc(db, 'projects', entryToDelete.projectId);
+          const currentProject = await getDocs(query(collection(db, 'projects'), where('__name__', '==', entryToDelete.projectId)));
+          if (!currentProject.empty) {
+            const projectData = currentProject.docs[0].data();
+            const newTotalHours = Math.max(0, (projectData.totalHours || 0) - parseFloat(deleteConfirmation.hours));
+            await updateDoc(projectRef, { totalHours: newTotalHours });
+          }
+        }
+        
+        hideDeleteConfirmation();
+      } catch (error) {
+        console.error('Failed to delete time entry:', error);
+      }
+    }
+  };
+
   // Show loading spinner while initial data loads
   if (loading && timeEntries.length === 0) {
     return <LoadingSpinner text="Loading timesheet..." />;
@@ -154,6 +204,7 @@ export default function UserTimesheetScreen({ navigation, route }: UserTimesheet
           <Text style={[styles.headerCell, styles.taskCell]}>Task</Text>
           <Text style={[styles.headerCell, styles.hoursCell]}>Hours</Text>
           <Text style={[styles.headerCell, styles.projectCell]}>Project</Text>
+          <Text style={[styles.headerCell, styles.actionCell]}>Actions</Text>
         </View>
 
         {loading && timeEntries.length === 0 ? (
@@ -163,6 +214,7 @@ export default function UserTimesheetScreen({ navigation, route }: UserTimesheet
               <SkeletonLoader width="80%" height={16} />
               <SkeletonLoader width="90%" height={16} />
               <SkeletonLoader width="60%" height={16} />
+              <SkeletonLoader width="70%" height={16} />
               <SkeletonLoader width="70%" height={16} />
             </View>
           ))
@@ -175,6 +227,14 @@ export default function UserTimesheetScreen({ navigation, route }: UserTimesheet
               <Text style={[styles.cell, styles.projectCell]}>
                 {projects[entry.projectId] || 'Unknown Project'}
               </Text>
+              <View style={styles.actionCell}>
+                <TouchableOpacity 
+                  style={styles.deleteButton}
+                  onPress={() => showDeleteConfirmation(entry.id, entry.hours)}
+                >
+                  <Text style={styles.deleteButtonText}>Delete🗑️</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           ))
         )}
@@ -186,6 +246,13 @@ export default function UserTimesheetScreen({ navigation, route }: UserTimesheet
           </View>
         )}
       </ScrollView>
+      <DeleteConfirmation
+        visible={deleteConfirmation.visible}
+        title="Delete Time Entry"
+        message="Are you sure you want to delete this time entry? This action cannot be undone."
+        onConfirm={confirmDeleteTimeEntry}
+        onCancel={hideDeleteConfirmation}
+      />
     </View>
   );
 }
@@ -278,6 +345,16 @@ const styles = StyleSheet.create({
   },
   projectCell: {
     flex: 1,
+  },
+  actionCell: {
+    flex: 0.5,
+    alignItems: 'flex-start',
+  },
+  deleteButton: {
+    padding: 5,
+  },
+  deleteButtonText: {
+    fontSize: 16,
   },
   emptyState: {
     alignItems: 'center',
